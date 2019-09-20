@@ -1,6 +1,5 @@
 import asyncio
 import aiohttp
-import logging
 import requests
 from tools.log import logger
 
@@ -32,14 +31,36 @@ class Myrequest:
                 charset = res.charset
                 cookies = res.cookies
                 headers = res.headers
-                return Response(url, content, status_code)
+                text = self.parse_content(charset, content)
+                return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies, headers=headers)
+
+    def quest(self):
+        return requests
 
     def parse_content(self, charset, content):
         if charset:
             try:
                 text = content.decode(charset)
-            except Exception:
-                pass
+            except UnicodeDecodeError:
+                try:
+                    text = content.decode('GBK')
+                except UnicodeDecodeError:
+                    try:
+                        text = content.decode('gb2312')
+                    except UnicodeDecodeError:
+                        text = content.decode('utf-8', "ignore")
+        else:
+            try:
+                text = content.decode('GBK')
+            except UnicodeDecodeError:
+                try:
+                    text = content.decode('GBK')
+                except UnicodeDecodeError:
+                    try:
+                        text = content.decode('gb2312')
+                    except UnicodeDecodeError:
+                        text = content.decode('utf-8', "ignore")
+        return text
 
 
 class Response:
