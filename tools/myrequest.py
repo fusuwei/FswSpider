@@ -5,11 +5,12 @@ from tools.log import logger
 
 
 class Myrequest:
-    def __init__(self, verify_ssl=False, limit=100, ):
-        self.conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
+    def __init__(self, ):
+        pass
 
     async def req(self, url=None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=3,
-            json=None, allow_redirects=False):
+            json=None, allow_redirects=False, verify_ssl=False, limit=100, ):
+        self.conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
         async with aiohttp.ClientSession(connector=self.conn) as session:
             try:
                 if method.upper() == "GET":
@@ -31,13 +32,13 @@ class Myrequest:
                 charset = res.charset
                 cookies = res.cookies
                 headers = res.headers
-                text = self.parse_content(charset, content)
+                text = self._parse_content(charset, content)
                 return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies, headers=headers)
 
     def quest(self):
         return requests
 
-    def parse_content(self, charset, content):
+    def _parse_content(self, charset, content):
         if charset:
             try:
                 text = content.decode(charset)
