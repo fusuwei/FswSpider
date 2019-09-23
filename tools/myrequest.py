@@ -5,25 +5,27 @@ from tools.log import logger
 
 
 class Myrequest:
-    def __init__(self, ):
+    def __init__(self):
         pass
 
-    async def req(self, url=None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=3,
-            json=None, allow_redirects=False, verify_ssl=False, limit=100, ):
+    async def request(self, url =None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=10,
+            json=None, cookies=None,allow_redirects=False, verify_ssl=False, limit=100):
+
         self.conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
-        async with aiohttp.ClientSession(connector=self.conn) as session:
+
+        async with aiohttp.ClientSession(connector=self.conn, cookies=cookies) as self.session:
             try:
                 if method.upper() == "GET":
-                    async with session.get(url=url, params=params, headers=headers, proxy=proxies, timeout=timeout,
+                    async with self.session.get(url=url, params=params, headers=headers, proxy=proxies, timeout=timeout,
                                            allow_redirects=allow_redirects) as res:
                         content = await res.read()
                 elif method.upper() == 'POST':
-                    async with session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
+                    async with self.session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
                                             allow_redirects=allow_redirects, json=json) as res:
                         content = await res.read()
                 else:
                     raise ValueError("method只支持post, get!")
-            except Exception:
+            except Exception as e:
                 content = None
                 logger.error("请求未返回res")
                 return Response(url, content)
@@ -77,12 +79,12 @@ class Response:
 
 
 if __name__ == '__main__':
-    req = Myrequest()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36"
     }
     url = "https://www.baidu.com/"
-    coroutine = req.req(url=url, headers=headers)
+    req = Myrequest()
+    coroutine = req.request(url, headers=headers)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(coroutine)
     print()
