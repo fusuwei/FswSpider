@@ -6,11 +6,12 @@ class MySpider(Spider):
         super(MySpider, self).__init__()
 
     def start_produce(self):
-        for i in range(10):
-            url = "http://ecp.sgcc.com.cn"
+        for i in range(1):
+            url = "https://www.baidu.com/"
             yield {"url": url}
 
-    def paese(self):
+    def parse(self, res):
+        print()
         pass
 
 

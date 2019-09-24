@@ -8,19 +8,18 @@ class Myrequest:
     def __init__(self):
         pass
 
-    async def request(self, url =None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=10,
-            json=None, cookies=None,allow_redirects=False, verify_ssl=False, limit=100):
+    async def request(self, url=None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=10,
+                      json=None, cookies=None, allow_redirects=False, verify_ssl=False, limit=100, callback="parse"):
 
-        self.conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
-
-        async with aiohttp.ClientSession(connector=self.conn, cookies=cookies) as self.session:
+        conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
+        async with aiohttp.ClientSession(connector=conn, cookies=cookies) as session:
             try:
                 if method.upper() == "GET":
-                    async with self.session.get(url=url, params=params, headers=headers, proxy=proxies, timeout=timeout,
+                    async with session.get(url=url, params=params, headers=headers, proxy=proxies, timeout=timeout,
                                            allow_redirects=allow_redirects) as res:
                         content = await res.read()
                 elif method.upper() == 'POST':
-                    async with self.session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
+                    async with session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
                                             allow_redirects=allow_redirects, json=json) as res:
                         content = await res.read()
                 else:
@@ -35,7 +34,8 @@ class Myrequest:
                 cookies = res.cookies
                 headers = res.headers
                 text = self._parse_content(charset, content)
-                return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies, headers=headers)
+                return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
+                                headers=headers, callback=callback)
 
     def quest(self):
         return requests
@@ -67,7 +67,8 @@ class Myrequest:
 
 
 class Response:
-    def __init__(self, url, content=None, status_code=None, text=None, charset=None, cookies=None, method=None, headers=None):
+    def __init__(self, url, content=None, status_code=None, text=None, charset=None, cookies=None, method=None,
+                 headers=None, callback="parse"):
         self.url = url
         self.content = content
         self.status_code = status_code
@@ -76,6 +77,7 @@ class Response:
         self.cookies = cookies
         self.method = method
         self.headers = headers
+        self.callback = callback
 
 
 if __name__ == '__main__':
