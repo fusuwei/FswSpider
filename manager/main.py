@@ -1,4 +1,4 @@
-from tools import req, get_ua, get_ip, get_cookies, logger
+from tools import req, get_ua, get_ip, get_cookies, logger, RabbitMq
 import abc
 import asyncio
 import configparser
@@ -6,6 +6,7 @@ from importlib import import_module
 from queue import Queue
 from threading import Thread
 import setting
+import json
 
 
 PATH = setting.PATH
@@ -16,10 +17,15 @@ class Spider:
         self.queue = Queue()
         self.async_number = setting.async_number
         self.function = setting.function
+        self.spider_name = setting.spider_name
         self.proxies = False
         self.cookies = False
         self.headers = True
         self.allow_code = []
+        self.rabbit = RabbitMq.connect(self.spider_name)
+
+
+        self._produce_count = 1
 
     def start_loop(self, loop):
         asyncio.set_event_loop(loop)
@@ -86,11 +92,14 @@ class Spider:
         if self.function == "m":
             if hasattr(self, "start_produce"):
                 start_produce = getattr(self, "start_produce")
-                for message in start_produce():
-                    print("生产：", message)
-                    self.queue.put(message)
+                for i,message in enumerate(start_produce()):
+                    print("[%d]生产：" % (i+1), message)
+                    message = json.dumps(message)
+                    self.rabbit.pulish(message)
         elif self.function == "w":
-            self.queue.put(message)
+            print("[%d]生产：" % (self._produce_count + 1), message)
+            message = json.dumps(message)
+            self.rabbit.pulish(message)
 
     def listen(self):
         pass
@@ -123,11 +132,14 @@ def runner():
     cfg.read(PATH + "\manager\_spider.cfg")
     path = cfg.get('spider', 'path')
     function = cfg.get('spider', 'function')
+    spider_name = cfg.get('spider', 'spider_name')
     async_number = cfg.get('spider', 'async_number', fallback='')
     if async_number:
         setting.async_number = async_number
     if function:
         setting.function = function
+    if spider_name:
+        setting.spider_name = spider_name
 
     if path and path.endswith(".py"):
         path = "spider." + path.replace("/", '.').strip(".py")
@@ -135,8 +147,8 @@ def runner():
         spider_cls = import_module(path, "MySpider")
         spider = spider_cls.MySpider()
         # if function == "m":
-        # spider.produce()
+        spider.produce()
         # else:
-        spider.run()
+        # spider.run()
 
 
