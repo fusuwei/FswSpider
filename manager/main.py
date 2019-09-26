@@ -1,4 +1,5 @@
-from tools import req, get_ua, get_ip, get_cookies, logger, RabbitMq
+import time
+from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, Heartbeat
 import abc
 import asyncio
 import configparser
@@ -23,8 +24,7 @@ class Spider:
         self.headers = True
         self.allow_code = []
         self.rabbit = RabbitMq.connect(self.spider_name)
-
-
+        self.logger = log(__name__)
         self._produce_count = 1
 
     def start_loop(self, loop):
@@ -39,7 +39,7 @@ class Spider:
     def parse(self, res):
         pass
 
-    async def request(self, message):
+    async def request(self, message, channel, tag, properties):
         message = self.pretreatment(message)
         message = self.remessage(message)
         url = message.get("url", None)
@@ -62,21 +62,21 @@ class Spider:
                                     proxies=proxies, timeout=timeout, json=json, cookies=cookies,
                                     allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit)
             if res.status_code != 200 and res.status_code is not None:
-                logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
+                self.logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
                 if res.status_code in self.allow_code:
                     break
             else:
                 break
         if callback and hasattr(self, callback):
             self.__getattribute__(callback)(res)
-
+            channel.basic_ack(delivery_tag=tag.delivery_tag)
         else:
             raise ValueError("必须构建回调函数")
 
     def pretreatment(self, message):
         if self.headers:
             headers = message.get("headers", get_ua())
-            message["headers"] = headers
+            message["headers"] ={"User-Agent" :headers}
         if self.proxies:
             proxies = message.get("proxies", get_ip())
             message["proxies"] = proxies
@@ -105,10 +105,14 @@ class Spider:
         pass
 
     def consume(self):
-        # while True:
-        #     message = self.queue.get()
-            message = {"url": "https://www.baidu.com/"}
-            asyncio.run_coroutine_threadsafe(self.request(message), self.new_loop)
+        heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
+        heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
+        heartbeat.startheartbeat()  # 开启心跳保护
+        self.rabbit.consume(callback=self.callback, limit=self.async_number)
+
+    def callback(self, channel, method, properties, body):
+        message = json.loads(body)
+        asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
 
     def run(self,):
 
@@ -118,16 +122,11 @@ class Spider:
         loop_thread.setDaemon(True)
         loop_thread.start()
 
-        loop_start = Thread(target=self.consume)
-        loop_start.setDaemon(True)
-        loop_start.start()
-        loop_thread.join()
-        loop_start.join()
-
-        # self.queue.join()
+        self.consume()
 
 
 def runner():
+
     cfg = configparser.ConfigParser()
     cfg.read(PATH + "\manager\_spider.cfg")
     path = cfg.get('spider', 'path')
@@ -146,9 +145,9 @@ def runner():
 
         spider_cls = import_module(path, "MySpider")
         spider = spider_cls.MySpider()
-        # if function == "m":
-        spider.produce()
-        # else:
-        # spider.run()
+        if function == "m":
+            spider.produce()
+        else:
+            spider.run()
 
 
