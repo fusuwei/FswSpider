@@ -1,9 +1,19 @@
 import logging
-
+import setting
 
 def log(name):
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    if setting.log_grade:
+        if setting.log_grade == "error":
+            logger.setLevel(logging.ERROR)
+        elif setting.log_grade == "debug":
+            logger.setLevel(logging.DEBUG)
+        elif setting.log_grade == "info":
+            logger.setLevel(logging.INFO)
+        elif setting.log_grade == "warning":
+            logger.setLevel(logging.WARNING)
+    else:
+        logger.setLevel(logging.ERROR)
     # create console handler and set level to debug
 
     ch = logging.StreamHandler()

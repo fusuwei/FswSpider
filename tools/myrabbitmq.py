@@ -2,6 +2,8 @@ import threading
 import pika
 import setting
 import time
+from tools.log import log
+logger = log(__name__)
 
 
 class Heartbeat(threading.Thread):
@@ -35,6 +37,7 @@ class Heartbeat(threading.Thread):
 
     # 开启心跳保护
     def startheartbeat(self):
+        logger.debug("心态线程开始！")
         self.lock.acquire()
         if self.quitflag:
             self.lock.release()
@@ -44,20 +47,30 @@ class Heartbeat(threading.Thread):
 
 
 class RabbitMq:
-    def __init__(self, name, connection, channel):
+    def __init__(self, name, connection, channel, queue):
         self.name = name
         self.rabbitmq_host = setting.rabbitmq_host
         self.rabbitmq_pwd = setting.rabbitmq_pwd
         self.connection = connection
         self.channel = channel
+        self.queue = queue
 
     @classmethod
-    def connect(cls, name):
-        user_pwd = pika.PlainCredentials(setting.rabbitmq_user, setting.rabbitmq_pwd)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=setting.rabbitmq_host, credentials=user_pwd))
-        channel = connection.channel()
-        channel.queue_declare(queue=name, durable=True)
-        return cls(name, connection, channel)
+    def connect(cls, name, is_count=False):
+        if not is_count:
+            logger.debug("开始连接rabbitmq队列！")
+            user_pwd = pika.PlainCredentials(setting.rabbitmq_user, setting.rabbitmq_pwd)
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=setting.rabbitmq_host, credentials=user_pwd))
+            channel = connection.channel()
+            queue = channel.queue_declare(queue=name, durable=True,)
+            return cls(name, connection, channel, queue)
+        else:
+            user_pwd = pika.PlainCredentials(setting.rabbitmq_user, setting.rabbitmq_pwd)
+            connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=setting.rabbitmq_host, credentials=user_pwd))
+            channel = connection.channel()
+            queue = channel.queue_declare(queue=name, durable=True, exclusive=False, auto_delete=False)
+            return queue.method.message_count
 
     def pulish(self, body, priority=0):
         self.channel.basic_publish(exchange='', routing_key=self.name, body=body,
@@ -71,9 +84,8 @@ class RabbitMq:
         heartbeat.startheartbeat()  # 开启心跳保护
         self.channel.start_consuming()  # 开始消费
 
+    def del_queue(self, name, if_unused=False, if_empty=False):
+        self.channel.queue_delete(queue=name, if_unused=if_unused, if_empty=if_empty)
 
-def callback(ch, method,properties,body): #定义一个回调函数，用来接收生产者发送的消息
-    print(" [x] Received %r" % (body,))
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-
+    def purge(self, name):
+        self.channel.queue_purge(name)
