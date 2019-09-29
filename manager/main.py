@@ -1,4 +1,4 @@
-from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, Heartbeat
+from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, Heartbeat, MySql
 import re
 import abc
 import asyncio
@@ -161,9 +161,9 @@ class Spider:
         pass
 
     def consume(self):
-        heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
-        heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
-        heartbeat.startheartbeat()  # 开启心跳保护
+        # heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
+        # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
+        # heartbeat.startheartbeat()  # 开启心跳保护
         self.rabbit.consume(callback=self.callback, limit=self.async_number)
 
     def callback(self, channel, method, properties, body):
@@ -184,12 +184,24 @@ def runner(path=None, function=None, spider_name=None, async_number=None):
 
     if not path and not function:
         cfg = configparser.ConfigParser()
-        cfg.read(PATH + "\manager\_spider.cfg")
+        cfg.read(PATH + "\manager\_spider.cfg", encoding="utf8")
         path = cfg.get('spider', 'path')
         function = cfg.get('spider', 'function')
         spider_name = cfg.get('spider', 'spider_name', fallback='')
         async_number = cfg.get('spider', 'async_number', fallback=1)
 
+        keys = [key for key in cfg.keys()]
+        if "create db" in keys and "create table" in keys:
+            db_dict, tb_dict = {}, {}
+            for key, val in cfg.items("create db"):
+                db_dict[key] = val
+
+            for key, val in cfg.items("create table"):
+                tb_dict[key] = val
+            setting.db_dict = db_dict
+            setting.tb_dict = tb_dict
+            a = MySql.mysql_pool()
+            a.create_db()
     if async_number:
         setting.async_number = async_number
     if function:
