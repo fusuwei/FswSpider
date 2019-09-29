@@ -6,7 +6,7 @@ class MySpider(Spider):
         super(MySpider, self).__init__()
 
     def start_produce(self):
-        for i in range(2000):
+        for i in range(10):
             url = "https://www.baidu.com/"
             yield {"url": url}
 

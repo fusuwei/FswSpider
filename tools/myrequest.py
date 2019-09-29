@@ -1,7 +1,8 @@
 import asyncio
 import aiohttp
 import requests
-from tools.log import logger
+from tools.log import log
+logger = log(__name__)
 
 
 class Myrequest:

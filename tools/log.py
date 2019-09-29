@@ -3,7 +3,7 @@ import logging
 
 def log(name):
     logger = logging.getLogger(name)
-    logger.setLevel(logging.ERROR)
+    logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
 
     ch = logging.StreamHandler()

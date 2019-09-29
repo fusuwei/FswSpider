@@ -65,7 +65,7 @@ class RabbitMq:
 
     def consume(self, callback=None, limit=1):
         self.channel.basic_qos(prefetch_count=limit)
-        self.channel.basic_consume(callback, queue=self.name)
+        self.channel.basic_consume(queue=self.name, on_message_callback=callback)
         heartbeat = Heartbeat(self.connection)  # 实例化一个心跳类
         heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         heartbeat.startheartbeat()  # 开启心跳保护
