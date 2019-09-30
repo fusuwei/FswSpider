@@ -1,6 +1,5 @@
+from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, MySql
 import time
-
-from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, Heartbeat, MySql
 import re
 import abc
 import asyncio
@@ -24,6 +23,9 @@ class Spider:
         self.spider_name = None
         self.is_purge = None
 
+        self.table_name = None
+        self.dbname = None
+
         self.is_create_sql = setting.is_create_sql
 
     def init(self, proxies=False, cookies=False, headers=True):
@@ -46,9 +48,11 @@ class Spider:
         self.cookies = cookies
         self.headers = headers
         self.rabbit = RabbitMq.connect(self.spider_name)
-        self.mysql = MySql.mysql_pool()
         if self.is_create_sql:
+            self.mysql = MySql.mysql_pool()
             self.mysql.create_db()
+        else:
+            self.mysql = MySql.mysql_pool(self.dbname)
 
     def start_loop(self, loop):
         asyncio.set_event_loop(loop)
@@ -179,6 +183,34 @@ class Spider:
     def callback(self, channel, method, properties, body):
         message = json.loads(body)
         asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
+
+    def insql(self, tablename, keys=None, values=None, items=None):
+        print(keys, values, items)
+        if keys and not isinstance(keys, list):
+            logger.error("keys 必须是 list")
+            raise ValueError()
+        if values and not isinstance(values, list):
+            logger.error("values 必须是 list")
+            raise ValueError()
+        if items and not isinstance(values, dict):
+            logger.error("items 必须是 dict")
+            raise ValueError()
+        if keys and values and not len(keys) != len(values):
+            logger.error("keys 和 values 不一样长")
+            raise ValueError()
+        ty = lambda x: "'%s'" % x if isinstance(x, str) or "str" in str(type(x)) or "Str" in str(type(x)) else x
+        if values:
+            values = [ty(i) for i in values]
+        if items:
+            for k, v in items.items():
+                items[k] = ty(v)
+        self.mysql.insql(tablename, keys, values, items)
+
+    def delete(self, tablename, key, value):
+        self.mysql.delete(tablename, key, value,)
+
+    def select(self, tablename, key=None, value=None, v="*", term=None, one=False):
+        self.mysql.select(tablename, key, value, v, term, one)
 
     def run(self,):
         self.new_loop = asyncio.new_event_loop()

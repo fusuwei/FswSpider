@@ -1,7 +1,7 @@
 import asyncio
 import aiohttp
 import requests
-from tools.log import log
+from tools.built_in.log import log
 logger = log(__name__)
 
 
