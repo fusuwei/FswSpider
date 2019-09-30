@@ -3,6 +3,8 @@ import pika
 import setting
 import time
 from tools.log import log
+import requests
+import json
 logger = log(__name__)
 
 
@@ -65,12 +67,11 @@ class RabbitMq:
             queue = channel.queue_declare(queue=name, durable=True,)
             return cls(name, connection, channel, queue)
         else:
-            user_pwd = pika.PlainCredentials(setting.rabbitmq_user, setting.rabbitmq_pwd)
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=setting.rabbitmq_host, credentials=user_pwd))
-            channel = connection.channel()
-            queue = channel.queue_declare(queue=name, durable=True, exclusive=False, auto_delete=False)
-            return queue.method.message_count
+            res = requests.get(url='http://{}:{}/api/queues/{}/{}'.format(setting.rabbitmq_host, "15672", "%2F", name
+                                                                          ), auth=(setting.rabbitmq_user,
+                                                                                   setting.rabbitmq_pwd))
+            res = json.loads(res.content.decode())
+            return int(res["messages"])
 
     def pulish(self, body, priority=0):
         self.channel.basic_publish(exchange='', routing_key=self.name, body=body,
@@ -82,7 +83,13 @@ class RabbitMq:
         heartbeat = Heartbeat(self.connection)  # 实例化一个心跳类
         heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         heartbeat.startheartbeat()  # 开启心跳保护
-        self.channel.start_consuming()  # 开始消费
+        consu = threading.Thread(target=self.channel.start_consuming, )  # 开始消费
+        consu.setDaemon(True)
+        consu.start()
+        while True:
+            consu.join(10)
+            if RabbitMq.connect(self.name, is_count=True) == 0:
+                break
 
     def del_queue(self, name, if_unused=False, if_empty=False):
         self.channel.queue_delete(queue=name, if_unused=if_unused, if_empty=if_empty)

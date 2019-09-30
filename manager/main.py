@@ -1,3 +1,5 @@
+import time
+
 from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, Heartbeat, MySql
 import re
 import abc
@@ -22,6 +24,8 @@ class Spider:
         self.spider_name = None
         self.is_purge = None
 
+        self.is_create_sql = setting.is_create_sql
+
     def init(self, proxies=False, cookies=False, headers=True):
         async_number = self.__getattribute__('async_number')
         if not async_number:
@@ -42,6 +46,9 @@ class Spider:
         self.cookies = cookies
         self.headers = headers
         self.rabbit = RabbitMq.connect(self.spider_name)
+        self.mysql = MySql.mysql_pool()
+        if self.is_create_sql:
+            self.mysql.create_db()
 
     def start_loop(self, loop):
         asyncio.set_event_loop(loop)
@@ -165,6 +172,9 @@ class Spider:
         # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         # heartbeat.startheartbeat()  # 开启心跳保护
         self.rabbit.consume(callback=self.callback, limit=self.async_number)
+        self.rabbit.del_queue(self.spider_name)
+        print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        print("运行完..")
 
     def callback(self, channel, method, properties, body):
         message = json.loads(body)
@@ -200,8 +210,7 @@ def runner(path=None, function=None, spider_name=None, async_number=None):
                 tb_dict[key] = val
             setting.db_dict = db_dict
             setting.tb_dict = tb_dict
-            a = MySql.mysql_pool()
-            a.create_db()
+
     if async_number:
         setting.async_number = async_number
     if function:

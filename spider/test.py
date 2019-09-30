@@ -9,7 +9,7 @@ class MySpider(Spider):
         self.init()
 
     def start_produce(self):
-        for i in range(1):
+        for i in range(10):
             url = "https://www.baidu.com/"
             yield {"url": url}
 
@@ -20,4 +20,4 @@ class MySpider(Spider):
 
 if __name__ == '__main__':
     run = start()
-    run(path='test.py', function="w")
+    run(path='test.py', function="w", async_number=7)

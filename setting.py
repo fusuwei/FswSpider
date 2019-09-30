@@ -19,6 +19,7 @@ rabbitmq_pwd = "123456"
 is_purge = False
 
 # mysql
+is_create_sql = False
 mysql_host = "127.0.0.1"
 mysql_user = "root"
 mysql_pwd = "fsw.1996"
