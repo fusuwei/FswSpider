@@ -22,5 +22,5 @@ is_purge = False
 is_create_sql = False
 mysql_host = "127.0.0.1"
 mysql_user = "root"
-mysql_pwd = "123456"
+mysql_pwd = "fsw.1996"
 mysql_port = 3306

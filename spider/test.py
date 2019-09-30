@@ -11,12 +11,13 @@ class MySpider(Spider):
         self.init()
 
     def start_produce(self):
-        for i in range(10):
-            url = "https://www.baidu.com/"
+        for i in range(2):
+            url = "https://www.cnblogs.com/wongbingming/p/9124142.html"
             yield {"url": url}
 
     def parse(self, res):
         print(res.status_code)
+        self.produce({"url": "weqwewq"})
         self.insql("test", values=[0, res.text])
 
 

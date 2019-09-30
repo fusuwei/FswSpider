@@ -75,27 +75,37 @@ class MySql:
         pass
 
     def insql(self, tablename, keys=None, values=None, items=None):
-        sql = ''
         conn, cursor = self.open()
         if not keys and not items and values:
-            sql = "INSERT INTO {table_name} VALUES ({values});".format(table_name=tablename, values=','.join(str(i) for i in values))
-        elif not keys and not values and items:
-            keys = ''.format(str(i) for i in items.keys())
-            values = "".format(str(i) for i in items.values())
-            sql = "INSERT INTO {table_name}({keys}) VALUES ({values});".format(table_name=tablename, keys=keys,
-                                                                               values=values)
+            count = len(values)
+            sql = "INSERT INTO {} VALUES (".format(tablename) + "%s, "*(count-1) + "%s" + ");"
+            cursor.execute(sql, values)
+            print(values)
+            conn.commit()
+            self.close(conn, cursor)
+
         elif not items and keys and values:
             keys = ''.format(str(i) for i in keys)
-            values = "".format(str(i) for i in values)
-            sql = "INSERT INTO {table_name}({keys}) VALUES ({values});".format(table_name=tablename, keys=keys,
-                                                                               values=values)
-        if sql:
-            cursor.execute(sql)
+            count = len(values)
+            sql = "INSERT INTO {table_name}({keys}) VALUES (".format(table_name=tablename, keys=keys,)\
+                  + "%s, "*(count-1) + "%s" + ");"
+            cursor.execute(sql, values)
+            print(values)
+            conn.commit()
+            self.close(conn, cursor)
+
+        elif not keys and not values and items:
+            keys = ','.format(str(i) for i in items.keys())
+            values = [i for i in items.values()]
+            count = len(values)
+            sql = "INSERT INTO {table_name}({keys}) VALUES (".format(table_name=tablename, keys=keys,) \
+                  + "%s, "*(count-1) + "%s" + ");"
+            cursor.execute(sql, values)
+            print(values)
             conn.commit()
             self.close(conn, cursor)
         else:
             print("入库失败，字段不符合要求！")
-
 
     def create_db(self):
         if hasattr(setting, "db_dict"):

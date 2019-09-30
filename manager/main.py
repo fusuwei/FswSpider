@@ -1,4 +1,4 @@
-from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, MySql
+from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, MySql, get_md5, ExceptErrorThread
 import time
 import re
 import abc
@@ -9,12 +9,17 @@ from threading import Thread
 import setting
 import json
 import random
+import traceback
+import sys
+import os
 logger = log(__name__)
 PATH = setting.PATH
 
 
 class Spider:
     def __init__(self):
+        self._url_md5 = set()
+
         self.allow_code = []
         self._produce_count = 1
 
@@ -69,44 +74,52 @@ class Spider:
         pass
 
     async def request(self, message, channel, tag, properties):
-        logger.debug("开始请求url为：%s" % message["url"])
-        message = self.pretreatment(message)
-        message = self.remessage(message)
-        url = message.get("url", None)
-        callback = message.get("callback", "parse")
-        max_times = message.get("max_times", 3)
-        method = message.get("method", "GET")
-        data = message.get("data", None)
-        params = message.get("params", None)
-        headers = message.get("headers", None)
-        proxies = message.get("proxies", None)
-        timeout = message.get("timeout", None)
-        json = message.get("json", None)
-        cookies = message.get("cookies", None)
-        allow_redirects = message.get("allow_redirects", False)
-        verify_ssl = message.get("verify_ssl", False)
-        limit = message.get("limit", 100)
-        res = None
-        if url and "http" in url:
-            for i in range(1, max_times + 1):
-                res = await req.request(url=url, method=method, data=data, params=params, headers=headers,
-                                        proxies=proxies, timeout=timeout, json=json, cookies=cookies,
-                                        allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit)
-                if res.status_code != 200 and res.status_code is not None:
-                    logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
-                    if res.status_code in self.allow_code:
+        try:
+            logger.debug("开始请求url为：%s" % message["url"])
+            message = self.pretreatment(message)
+            message = self.remessage(message)
+            url = message.get("url", None)
+            callback = message.get("callback", "parse")
+            max_times = message.get("max_times", 3)
+            method = message.get("method", "GET")
+            data = message.get("data", None)
+            params = message.get("params", None)
+            headers = message.get("headers", None)
+            proxies = message.get("proxies", None)
+            timeout = message.get("timeout", None)
+            json = message.get("json", None)
+            cookies = message.get("cookies", None)
+            allow_redirects = message.get("allow_redirects", False)
+            verify_ssl = message.get("verify_ssl", False)
+            limit = message.get("limit", 100)
+            res = None
+            if url and "http" in url:
+                for i in range(1, max_times + 1):
+                    res = await req.request(url=url, method=method, data=data, params=params, headers=headers,
+                                            proxies=proxies, timeout=timeout, json=json, cookies=cookies,
+                                            allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit)
+                    if res.status_code != 200 and res.status_code is not None:
+                        logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
+                        if res.status_code in self.allow_code:
+                            break
+                    else:
                         break
+                if callback and hasattr(self, callback):
+                    self.__getattribute__(callback)(res)
+                    channel.basic_ack(delivery_tag=tag.delivery_tag)
                 else:
-                    break
-            if callback and hasattr(self, callback):
-                self.__getattribute__(callback)(res)
-                channel.basic_ack(delivery_tag=tag.delivery_tag)
+                    raise ValueError("必须构建回调函数")
             else:
-                raise ValueError("必须构建回调函数")
-        else:
-            if callback and hasattr(self, callback):
-                self.__getattribute__(callback)(message)
-                channel.basic_ack(delivery_tag=tag.delivery_tag)
+                if callback and hasattr(self, callback):
+                    self.__getattribute__(callback)(message)
+                    channel.basic_ack(delivery_tag=tag.delivery_tag)
+        except Exception:
+            ex_type, ex_val, ex_stack = sys.exc_info()
+            logger.error(ex_type)
+            logger.error(ex_val)
+            for stack in traceback.extract_tb(ex_stack):
+                logger.error(stack)
+            os._exit(-1)
 
     def pretreatment(self, message):
         if self.headers:
@@ -159,14 +172,19 @@ class Spider:
                 elif self.is_purge:
                     self.rabbit.purge(self.spider_name)
                 for i, message in enumerate(start_produce()):
-                    print("[%d]生产：" % (i+1), message)
-                    message = json.dumps(message)
-                    self.rabbit.pulish(message)
+                    md5 = get_md5([message.get("url", ""), message.get("data", '')])
+                    if md5 not in self._url_md5:
+                        print("[%d]生产：" % (i+1), message)
+                        message = json.dumps(message)
+                        self.rabbit.pulish(message)
+                        self._url_md5.add(md5)
 
         elif self.function == "w":
-            print("[%d]生产：" % (self._produce_count + 1), message)
-            message = json.dumps(message)
-            self.rabbit.pulish(message)
+            md5 = get_md5([message.get("url", ""), message.get("data", '')])
+            if md5 not in self._url_md5:
+                print("[%d]生产：" % (self._produce_count + 1), message)
+                message = json.dumps(message)
+                self.rabbit.pulish(message)
 
     def listen(self):
         pass
@@ -185,7 +203,7 @@ class Spider:
         asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
 
     def insql(self, tablename, keys=None, values=None, items=None):
-        print(keys, values, items)
+        # print(keys, values, items)
         if keys and not isinstance(keys, list):
             logger.error("keys 必须是 list")
             raise ValueError()
@@ -198,12 +216,12 @@ class Spider:
         if keys and values and not len(keys) != len(values):
             logger.error("keys 和 values 不一样长")
             raise ValueError()
-        ty = lambda x: "'%s'" % x if isinstance(x, str) or "str" in str(type(x)) or "Str" in str(type(x)) else x
-        if values:
-            values = [ty(i) for i in values]
-        if items:
-            for k, v in items.items():
-                items[k] = ty(v)
+        # ty = lambda x: "'%s'" % x if isinstance(x, str) or "str" in str(type(x)) or "Str" in str(type(x)) else x
+        # if values:
+        #     values = [ty(i) for i in values]
+        # if items:
+        #     for k, v in items.items():
+        #         items[k] = ty(v)
         self.mysql.insql(tablename, keys, values, items)
 
     def delete(self, tablename, key, value):

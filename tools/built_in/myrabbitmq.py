@@ -3,6 +3,7 @@ import pika
 import setting
 import time
 from tools.built_in.log import log
+from tools.built_in.toolslib import ExceptErrorThread
 import requests
 import json
 logger = log(__name__)
@@ -83,13 +84,18 @@ class RabbitMq:
         heartbeat = Heartbeat(self.connection)  # 实例化一个心跳类
         heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         heartbeat.startheartbeat()  # 开启心跳保护
-        consu = threading.Thread(target=self.channel.start_consuming, )  # 开始消费
-        consu.setDaemon(True)
-        consu.start()
-        while True:
-            consu.join(10)
-            if RabbitMq.connect(self.name, is_count=True) == 0:
-                break
+        # self.channel.start_consuming()
+        try:
+            # consu = threading.Thread(target=self.channel.start_consuming, )  # 开始消费
+            consu = ExceptErrorThread(self.channel.start_consuming)
+            consu.setDaemon(True)
+            consu.start()
+            while True:
+                consu.join(10)
+                if RabbitMq.connect(self.name, is_count=True) == 0:
+                    break
+        except Exception as e:
+            logger.error(consu.exc_traceback)
 
     def del_queue(self, name, if_unused=False, if_empty=False):
         self.channel.queue_delete(queue=name, if_unused=if_unused, if_empty=if_empty)
