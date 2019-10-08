@@ -2,6 +2,12 @@ import hashlib
 import traceback
 import sys
 import threading
+import re
+import setting
+from selenium import webdriver
+import time
+from selenium.webdriver.chrome.options import Options
+
 
 # url去重MD5
 def get_md5(url):
@@ -36,3 +42,47 @@ class ExceptErrorThread(threading.Thread):
             self.funcName(*(self.args))
         except Exception as e:
             raise e
+
+
+def get_cookies(url, headless=True, executable_path=None, proxy=None):
+    """
+    用selenium获取cookies
+    :param url:
+    :param headless: 是否需要无头
+    :param executable_path: webdriver路径
+    :param proxy: 代理
+    :return: 字符串cookies，需要放在headers里
+    """
+    new_url = re.search("(http|https)://(www.)?(\w+(\.)?)+", url).group()
+    chrome_options = Options()
+    if headless:
+        chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument(
+        'user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.3170.100 Safari/537.36"')
+    if proxy:
+        chrome_options.add_argument('--proxy-server=http://{}'.format(proxy))
+    if executable_path:
+        path = executable_path
+    else:
+        path = setting.webdriver_path_win
+    browser1 = webdriver.Chrome(path, chrome_options=chrome_options)
+    browser1.get(new_url)
+    time.sleep(1)
+    cookielist = browser1.get_cookies()
+    cookie = ""
+    for c in cookielist:
+        name = c['name']
+        value = c['value']
+        if name not in cookie:
+            cookie += (name + "=" + value + ";")
+    cookie = cookie[:-1]
+    browser1.close()
+    browser1.quit()
+    return cookie
+
+if __name__ == '__main__':
+    a = get_cookies("https://www.baidu.com/")
+    print(a)

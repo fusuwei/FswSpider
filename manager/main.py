@@ -1,5 +1,4 @@
-from tools import req, log, RabbitMq, MySql, get_md5, ExceptErrorThread
-from tools.cookies import get_cookies
+from tools import req, log, RabbitMq, MySql, get_md5, ExceptErrorThread, get_cookies
 from tools.proxy import get_ip
 from tools.user_agents import get_ua
 import time
@@ -38,7 +37,7 @@ class Spider:
 
         self.proxy_flag = True
 
-    def init(self, proxies=False, cookies=False, headers=True):
+    def init(self, auto_proxy=False, auto_cookies=False, auto_headers=True):
         async_number = self.__getattribute__('async_number')
         if not async_number:
             self.async_number = setting.async_number
@@ -54,9 +53,9 @@ class Spider:
         if not is_purge:
             self.is_purge = setting.is_purge
 
-        self.proxies = proxies
-        self.cookies = cookies
-        self.headers = headers
+        self.auto_proxy = auto_proxy
+        self.auto_cookies = auto_cookies
+        self.auto_headers = auto_headers
         self.rabbit = RabbitMq.connect(self.spider_name)
         if self.is_create_sql:
             self.mysql = MySql.mysql_pool()
@@ -106,14 +105,14 @@ class Spider:
                                             proxies=proxies, timeout=timeout, json=json, cookies=cookies,
                                             allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit)
                     if res.status_code != 200 and res.status_code is not None:
-                        if self.proxies:
+                        if self.auto_proxy:
                             proxies = random.choice(setting.proxies)
                             logger.debug("更换ip为：%s" % proxies)
                         logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
                         if res.status_code in self.allow_code:
                             break
                     elif res.status_code is None and res.content is None:
-                        if self.proxies:
+                        if self.auto_proxy:
                             proxies = random.choice(setting.proxies)
                             logger.debug("更换ip为：%s" % proxies)
                         logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
@@ -137,7 +136,7 @@ class Spider:
             os._exit(-1)
 
     def pretreatment(self, message):
-        if self.headers:
+        if self.auto_headers:
             headers = message.get("headers", get_ua())
             if isinstance(headers, dict):
                 ua = get_ua()
@@ -147,7 +146,7 @@ class Spider:
             else:
                 logger.debug("自动设置user-agent为：%s" % headers)
                 message["headers"] = {"User-Agent": headers}
-        if self.proxies:
+        if self.auto_proxy:
             if self.proxy_flag:
                 get_ip()
                 self.proxy_flag = False
@@ -171,10 +170,15 @@ class Spider:
                 else:
                     proxies = proxy
             message["proxies"] = proxies
-        if self.cookies:
-            cookies = message.get("cookies", get_cookies())
+        if self.auto_cookies:
+            if self.auto_proxy:
+                cookies = message.get("cookies", get_cookies(url=message["url"], proxy=message["proxies"]))
+            else:
+                cookies = message.get("cookies", get_cookies(url=message["url"]))
             logger.debug("自动设置获取cookies为：%s" % cookies)
-            message["cookies"] = cookies
+            if not message["headers"]:
+                message["headers"] = {}
+            message["headers"]["cookies"] = cookies
         return message
 
     def remessage(self, message):

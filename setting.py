@@ -25,4 +25,7 @@ mysql_user = "root"
 mysql_pwd = "fsw.1996"
 mysql_port = 3306
 
+# selenium
+webdriver_path_win = r"C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe"
+
 proxies = []

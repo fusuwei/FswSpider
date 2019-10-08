@@ -5,7 +5,7 @@ proxy = setting.proxies
 
 def get_ip(mysql=None, ):
     if not mysql:
-        mysql = MySql.mysql_pool(dbname="proxypool", mysql_host="127.0.0.1", mysql_user="root", mysql_pwd="123456")
+        mysql = MySql.mysql_pool(dbname="proxypool", mysql_host="127.0.0.1", mysql_user="root", mysql_pwd="fsw.1996")
     conn, cursor = mysql.open()
     sql = "show tables"
     cursor.execute(sql)
@@ -17,6 +17,3 @@ def get_ip(mysql=None, ):
                    else"http://%s:%s" % (ip["addr"], ip["port"]) for ip in proxies]
         setting.proxies.extend(proxies)
 
-
-if __name__ == '__main__':
-    get_ip()

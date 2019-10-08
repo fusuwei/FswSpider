@@ -8,7 +8,7 @@ class MySpider(Spider):
         self.dbname = "test"
         self.table_name = 'test'
         self.is_purge = True
-        self.init(proxies=True)
+        self.init(auto_cookies=True, auto_proxy=True)
 
     def start_produce(self):
         for i in range(2):
@@ -22,7 +22,7 @@ class MySpider(Spider):
 
 
 if __name__ == '__main__':
-    # run = start()
-    # run(path='test.py', function="w", async_number=1)
-    import requests
-    requests.get("https://www.baidu.com/", proxies={"http":""})
+    run = start()
+    run(path='test.py', function="w", async_number=1)
+    # import requests
+    # requests.get("https://www.baidu.com/", proxies={"http":""})
