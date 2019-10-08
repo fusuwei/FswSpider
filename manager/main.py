@@ -1,4 +1,7 @@
-from tools import req, get_ua, get_ip, get_cookies, log, RabbitMq, MySql, get_md5, ExceptErrorThread
+from tools import req, log, RabbitMq, MySql, get_md5, ExceptErrorThread
+from tools.cookies import get_cookies
+from tools.proxy import get_ip
+from tools.user_agents import get_ua
 import time
 import re
 import abc
@@ -32,6 +35,8 @@ class Spider:
         self.dbname = None
 
         self.is_create_sql = setting.is_create_sql
+
+        self.proxy_flag = True
 
     def init(self, proxies=False, cookies=False, headers=True):
         async_number = self.__getattribute__('async_number')
@@ -86,22 +91,32 @@ class Spider:
             params = message.get("params", None)
             headers = message.get("headers", None)
             proxies = message.get("proxies", None)
-            timeout = message.get("timeout", None)
+            timeout = message.get("timeout", 10)
             json = message.get("json", None)
             cookies = message.get("cookies", None)
             allow_redirects = message.get("allow_redirects", False)
             verify_ssl = message.get("verify_ssl", False)
             limit = message.get("limit", 100)
             res = None
+            if proxies and "https" in proxies:
+                proxies = proxies.replace("https", "http")
             if url and "http" in url:
                 for i in range(1, max_times + 1):
                     res = await req.request(url=url, method=method, data=data, params=params, headers=headers,
                                             proxies=proxies, timeout=timeout, json=json, cookies=cookies,
                                             allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit)
                     if res.status_code != 200 and res.status_code is not None:
+                        if self.proxies:
+                            proxies = random.choice(setting.proxies)
+                            logger.debug("更换ip为：%s" % proxies)
                         logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
                         if res.status_code in self.allow_code:
                             break
+                    elif res.status_code is None and res.content is None:
+                        if self.proxies:
+                            proxies = random.choice(setting.proxies)
+                            logger.debug("更换ip为：%s" % proxies)
+                        logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
                     else:
                         break
                 if callback and hasattr(self, callback):
@@ -133,7 +148,10 @@ class Spider:
                 logger.debug("自动设置user-agent为：%s" % headers)
                 message["headers"] = {"User-Agent": headers}
         if self.proxies:
-            proxies = message.get("proxies", get_ip())
+            if self.proxy_flag:
+                get_ip()
+                self.proxy_flag = False
+            proxies = random.choice(setting.proxies)
             logger.debug("自动设置代理ip为：%s" % proxies)
             message["proxies"] = proxies
         else:

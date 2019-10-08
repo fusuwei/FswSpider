@@ -27,8 +27,9 @@ class Myrequest:
                     raise ValueError("method只支持post, get!")
             except Exception as e:
                 content = None
+                error = e
                 logger.error("请求未返回res")
-                return Response(url, content)
+                return Response(url, content, error=error)
             else:
                 status_code = res.status
                 charset = res.charset
@@ -36,7 +37,7 @@ class Myrequest:
                 headers = res.headers
                 text = self._parse_content(charset, content)
                 return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
-                                headers=headers, callback=callback)
+                                headers=headers, callback=callback, proxies=proxies,)
 
     def quest(self):
         return requests
@@ -69,7 +70,7 @@ class Myrequest:
 
 class Response:
     def __init__(self, url, content=None, status_code=None, text=None, charset=None, cookies=None, method=None,
-                 headers=None, callback="parse"):
+                 headers=None, callback="parse", proxies=None, error=None):
         self.url = url
         self.content = content
         self.status_code = status_code
@@ -79,6 +80,8 @@ class Response:
         self.method = method
         self.headers = headers
         self.callback = callback
+        self.proxies = proxies
+        self.error = error
 
 
 if __name__ == '__main__':

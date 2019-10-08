@@ -8,11 +8,11 @@ class MySpider(Spider):
         self.dbname = "test"
         self.table_name = 'test'
         self.is_purge = True
-        self.init()
+        self.init(proxies=True)
 
     def start_produce(self):
         for i in range(2):
-            url = "https://www.cnblogs.com/wongbingming/p/9124142.html"
+            url = "https://www.baidu.com/"
             yield {"url": url}
 
     def parse(self, res):
@@ -22,5 +22,7 @@ class MySpider(Spider):
 
 
 if __name__ == '__main__':
-    run = start()
-    run(path='test.py', function="w", async_number=1)
+    # run = start()
+    # run(path='test.py', function="w", async_number=1)
+    import requests
+    requests.get("https://www.baidu.com/", proxies={"http":""})

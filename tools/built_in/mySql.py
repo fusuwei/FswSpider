@@ -10,27 +10,31 @@ class MySql:
         self.pool = pool
 
     @classmethod
-    def mysql_pool(cls, dbname=None):
+    def mysql_pool(cls, dbname=None, mysql_host=None, mysql_port=3306, mysql_user=None, mysql_pwd=None):
         logger.debug("开启mysql连接池！")
+        if not mysql_host or not mysql_user or not mysql_pwd:
+            host, port, user, password = setting.mysql_host, setting.mysql_port, setting.mysql_user, setting.mysql_pwd
+        else:
+            host, port, user, password = mysql_host, mysql_port, mysql_user, mysql_pwd
         if not dbname:
             pool = PooledDB(creator=pymysql, maxconnections=5,
                             blocking=True,  # 连接池中如果没有可用连接后，是否阻塞等待。True，等待；False，不等待然后报错
                             setsession=[],
                             ping=0,
-                            host=setting.mysql_host,
-                            port=setting.mysql_port,
-                            user=setting.mysql_user,
-                            password=setting.mysql_pwd,
-                            charset='utf8',)
+                            host=host,
+                            port=port,
+                            user=user,
+                            password=password,
+                            charset='utf8', )
         else:
             pool = PooledDB(creator=pymysql, maxconnections=5,
                             blocking=True,  # 连接池中如果没有可用连接后，是否阻塞等待。True，等待；False，不等待然后报错
                             setsession=[],
                             ping=0,
-                            host=setting.mysql_host,
-                            port=setting.mysql_port,
-                            user=setting.mysql_user,
-                            password=setting.mysql_pwd,
+                            host=host,
+                            port=port,
+                            user=user,
+                            password=password,
                             database=dbname,
                             charset='utf8', )
         return cls(pool)
@@ -122,6 +126,13 @@ class MySql:
             cursor.execute(sql, )
             conn.commit()
             self.close(conn, cursor)
+
+    def use_table(self, tablename):
+        conn, cursor = self.open()
+        sql = "USE %s" % tablename
+        cursor.execute(sql)
+        conn.commit()
+        self.close(conn, cursor)
 
     def create_table(self, db_name, cursor):
         if hasattr(setting, "tb_dict"):
