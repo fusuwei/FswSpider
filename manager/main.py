@@ -128,14 +128,15 @@ class Spider:
                     self.__getattribute__(callback)(message)
                     channel.basic_ack(delivery_tag=tag.delivery_tag)
         except Exception:
-            ex_type, ex_val, ex_stack = sys.exc_info()
-            logger.error(ex_type)
-            logger.error(ex_val)
-            for stack in traceback.extract_tb(ex_stack):
-                logger.error(stack)
-            os._exit(-1)
+            traceback.print_exc()
+            os._exit(1)
 
     def pretreatment(self, message):
+        """
+        预处理
+        :param message:
+        :return:
+        """
         if self.auto_headers:
             headers = message.get("headers", get_ua())
             if isinstance(headers, dict):
