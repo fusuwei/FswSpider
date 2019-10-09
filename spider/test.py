@@ -8,7 +8,7 @@ class MySpider(Spider):
         self.dbname = "test"
         self.table_name = 'test'
         self.is_purge = True
-        self.init(auto_cookies=True, auto_proxy=True)
+        self.init( auto_proxy=True)
 
     def start_produce(self):
         for i in range(2):

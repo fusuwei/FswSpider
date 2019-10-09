@@ -53,7 +53,9 @@ class Spider:
         if not is_purge:
             self.is_purge = setting.is_purge
 
-        self.auto_proxy = auto_proxy
+        if auto_proxy:
+            self.auto_proxy = auto_proxy
+            get_ip()
         self.auto_cookies = auto_cookies
         self.auto_headers = auto_headers
         self.rabbit = RabbitMq.connect(self.spider_name)
@@ -96,28 +98,13 @@ class Spider:
             allow_redirects = message.get("allow_redirects", False)
             verify_ssl = message.get("verify_ssl", False)
             limit = message.get("limit", 100)
-            res = None
             if proxies and "https" in proxies:
                 proxies = proxies.replace("https", "http")
             if url and "http" in url:
-                for i in range(1, max_times + 1):
-                    res = await req.request(url=url, method=method, data=data, params=params, headers=headers,
-                                            proxies=proxies, timeout=timeout, json=json, cookies=cookies,
-                                            allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit)
-                    if res.status_code != 200 and res.status_code is not None:
-                        if self.auto_proxy:
-                            proxies = random.choice(setting.proxies)
-                            logger.debug("更换ip为：%s" % proxies)
-                        logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
-                        if res.status_code in self.allow_code:
-                            break
-                    elif res.status_code is None and res.content is None:
-                        if self.auto_proxy:
-                            proxies = random.choice(setting.proxies)
-                            logger.debug("更换ip为：%s" % proxies)
-                        logger.warning("第%d次请求！状态码为%s" % (i, res.status_code))
-                    else:
-                        break
+                res = await req.request(url=url, method=method, data=data, params=params, headers=headers,
+                                        proxies=proxies, timeout=timeout, json=json, cookies=cookies,
+                                        allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit,
+                                        max_times=max_times, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
                 if callback and hasattr(self, callback):
                     self.__getattribute__(callback)(res)
                     channel.basic_ack(delivery_tag=tag.delivery_tag)
@@ -147,33 +134,25 @@ class Spider:
             else:
                 logger.debug("自动设置user-agent为：%s" % headers)
                 message["headers"] = {"User-Agent": headers}
-        if self.auto_proxy:
-            if self.proxy_flag:
-                get_ip()
-                self.proxy_flag = False
-            proxies = random.choice(setting.proxies)
-            logger.debug("自动设置代理ip为：%s" % proxies)
-            message["proxies"] = proxies
-        else:
-            proxies = message.get("proxies", "")
-            if proxies and isinstance(proxies, str) and "http" not in proxies:
-                proxies = "http://"+proxies
-            elif proxies and (isinstance(proxies, list) or isinstance(proxies, tuple)):
-                proxy = random.choice(proxies)
-                if "http" not in proxy:
-                    proxies = "http://" + proxy
-                else:
-                    proxies = proxy
-            elif proxies and isinstance(proxies, dict):
-                proxy = random.choice(list(proxies.values()))
-                if "http" not in proxy:
-                    proxies = "http://" + proxy
-                else:
-                    proxies = proxy
-            message["proxies"] = proxies
+        proxies = message.get("proxies", "")
+        if proxies and isinstance(proxies, str) and "http" not in proxies:
+            proxies = "http://"+proxies
+        elif proxies and (isinstance(proxies, list) or isinstance(proxies, tuple)):
+            proxy = random.choice(proxies)
+            if "http" not in proxy:
+                proxies = "http://" + proxy
+            else:
+                proxies = proxy
+        elif proxies and isinstance(proxies, dict):
+            proxy = random.choice(list(proxies.values()))
+            if "http" not in proxy:
+                proxies = "http://" + proxy
+            else:
+                proxies = proxy
+        message["proxies"] = proxies
         if self.auto_cookies:
             if self.auto_proxy:
-                cookies = message.get("cookies", get_cookies(url=message["url"], proxy=message["proxies"]))
+                cookies = message.get("cookies", get_cookies(url=message["url"], proxy=random.choice(setting.proxies)))
             else:
                 cookies = message.get("cookies", get_cookies(url=message["url"]))
             logger.debug("自动设置获取cookies为：%s" % cookies)

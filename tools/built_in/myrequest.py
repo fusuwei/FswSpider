@@ -2,6 +2,8 @@ import asyncio
 import aiohttp
 import requests
 from tools.built_in.log import log
+import setting
+import random
 logger = log(__name__)
 
 
@@ -10,34 +12,58 @@ class Myrequest:
         pass
 
     async def request(self, url=None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=10,
-                      json=None, cookies=None, allow_redirects=False, verify_ssl=False, limit=100, callback="parse"):
-
+                      json=None, cookies=None, allow_redirects=False, verify_ssl=False, limit=100, callback="parse",
+                      max_times=3, auto_proxy=False, allow_code=None):
+        if auto_proxy:
+            proxies = random.choice(setting.proxies)
         conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
         async with aiohttp.ClientSession(connector=conn, cookies=cookies) as session:
-            try:
-                if method.upper() == "GET":
-                    async with session.get(url=url, params=params, headers=headers, proxy=proxies, timeout=timeout,
-                                           allow_redirects=allow_redirects) as res:
-                        content = await res.read()
-                elif method.upper() == 'POST':
-                    async with session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
-                                            allow_redirects=allow_redirects, json=json) as res:
-                        content = await res.read()
+            max_times += 1
+            for i in range(1, max_times):
+                if proxies and "https" in proxies:
+                    proxies = proxies.replace("https", "http")
+                try:
+                    if method.upper() == "GET":
+                        async with session.get(url=url, params=params, headers=headers, proxy=proxies, timeout=timeout,
+                                               allow_redirects=allow_redirects) as res:
+                            content = await res.read()
+                    elif method.upper() == 'POST':
+                        async with session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
+                                                allow_redirects=allow_redirects, json=json) as res:
+                            content = await res.read()
+                    else:
+                        raise ValueError("method只支持post, get!")
+
+                except Exception as e:
+                    logger.error("请求失败，为返回Response")
+                    if i == max_times:
+                        content = None
+                        error = e
+                        return Response(url, content, error=error)
+                    if auto_proxy:
+                        proxies = random.choice(setting.proxies)
+                        logger.debug("更换ip为：%s" % proxies)
+                        continue
                 else:
-                    raise ValueError("method只支持post, get!")
-            except Exception as e:
-                content = None
-                error = e
-                logger.error("请求未返回res")
-                return Response(url, content, error=error)
-            else:
-                status_code = res.status
-                charset = res.charset
-                cookies = res.cookies
-                headers = res.headers
-                text = self._parse_content(charset, content)
-                return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
-                                headers=headers, callback=callback, proxies=proxies,)
+                    status_code = res.status
+                    if status_code == 200 and content is not None:
+                        charset = res.charset
+                        cookies = res.cookies
+                        headers = res.headers
+                        text = self._parse_content(charset, content)
+                        return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
+                                        headers=headers, callback=callback, proxies=proxies, )
+                    elif allow_code and status_code in allow_code:
+                        charset = res.charset
+                        cookies = res.cookies
+                        headers = res.headers
+                        text = self._parse_content(charset, content)
+                        return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
+                                        headers=headers, callback=callback, proxies=proxies, )
+                    else:
+                        proxies = random.choice(setting.proxies)
+                        logger.debug("更换ip为：%s" % proxies)
+                        logger.error("第%d次请求！状态码为%s" % (i, status_code))
 
     def quest(self):
         return requests
