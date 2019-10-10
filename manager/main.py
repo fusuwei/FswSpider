@@ -66,10 +66,12 @@ class Spider:
             self.insql = self.Mysql.insql
             self.delete = self.Mysql.delete
             self.select = self.Mysql.select
+            self.update = self.Mysql.update
 
             show_table_sql = "show tables"
             result = self.Mysql.diy_sql(show_table_sql)
             self.tables = [i["Tables_in_%s" % self.dbname] for i in result]
+
         else:
             logger.error("请配置数据库苦命")
             os._exit(-1)
