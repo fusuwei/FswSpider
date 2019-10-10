@@ -212,7 +212,7 @@ class Spider:
                             result["channel"] = channel
                             result["tag"] = tag
                             self._result_queue.put(result)
-                        if isinstance(result, list):
+                        elif isinstance(result, list):
                             result.append(channel)
                             result.append(tag)
                             self._result_queue.put(result)

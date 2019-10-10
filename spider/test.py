@@ -16,7 +16,6 @@ class MySpider(Spider):
 
     def parse(self, res):
         print(res.status_code)
-        # self.produce({"url": "weqwewq"})
         return {"content": str(res.status_code)}
 
 
