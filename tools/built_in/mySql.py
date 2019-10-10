@@ -106,15 +106,15 @@ class MySql:
                         id int primary key AUTO_INCREMENT, 
                         """ % table_name
         tmp = ""
-        for k, v in conditions:
+        for k, v in conditions.items():
             if isinstance(v, int):
                 tmp += " %s int ," % k
             elif isinstance(v, str) and len(v) < 200:
                 tmp += " %s varchar(%s) ," % (k, len(v)+50)
             elif isinstance(v, str) and len(v) > 200:
                 tmp += " %s text ," % k
-        tmp.replace(",", ")")
-        sql2 = "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
+        tmp = tmp.replace(",", ")")
+        sql2 = "ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4"
         sql = sql1 + tmp + sql2
         conn, cursor = self.open()
         cursor.execute(sql)

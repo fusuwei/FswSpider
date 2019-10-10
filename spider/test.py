@@ -6,7 +6,8 @@ class MySpider(Spider):
     def __init__(self,):
         super(MySpider, self).__init__()
         self.dbname = "test"
-        self.table_name = 'test'
+        self.table_name = "test1"
+        self.mysql_pwd = "fsw.1996"
         self.is_purge = True
 
     def start_produce(self):

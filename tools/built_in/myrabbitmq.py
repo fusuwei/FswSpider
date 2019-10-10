@@ -91,7 +91,7 @@ class RabbitMq:
             consu.setDaemon(True)
             consu.start()
             while True:
-                consu.join(10)
+                consu.join(30)
                 if RabbitMq.connect(self.name, is_count=True) == 0:
                     break
         except Exception as e:

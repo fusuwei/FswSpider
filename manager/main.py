@@ -52,6 +52,8 @@ class Spider:
         self.function = setting.function
 
         # mysql连接
+        if not self.table_name:
+            self.table_name = self.spider_name
         if self.dbname:
             if not self.mysql_host:
                 self.mysql_host = setting.mysql_host
@@ -297,11 +299,11 @@ class Spider:
             datas = self._result_queue.get()
             if isinstance(datas, dict):
                 table_name = datas.get("table_name", self.table_name)
-                if table_name not in self.tables:
-                    self.Mysql.create_table(self.table_name, datas)
-                    logger.warning("为填写表名，默认建立以脚本名为表名的表")
                 channel = datas.pop("channel")
                 tag = datas.pop("tag")
+                if table_name not in self.tables:
+                    self.Mysql.create_table(self.table_name, datas)
+                    logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
                 self.insql(table_name, conditions=datas)
                 channel.basic_ack(delivery_tag=tag.delivery_tag)
 
