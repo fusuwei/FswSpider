@@ -66,6 +66,10 @@ class Spider:
             self.insql = self.Mysql.insql
             self.delete = self.Mysql.delete
             self.select = self.Mysql.select
+
+            show_table_sql = "show tables"
+            result = self.Mysql.diy_sql(show_table_sql)
+            self.tables = [i["Tables_in_%s" % self.dbname] for i in result]
         else:
             logger.error("请配置数据库苦命")
             os._exit(-1)
@@ -159,6 +163,10 @@ class Spider:
                             result["channel"] = channel
                             result["tag"] = tag
                             self._result_queue.put(result)
+                        if isinstance(result, list):
+                            result.append(channel)
+                            result.append(tag)
+                            self._result_queue.put(result)
                         else:
                             logger.error("返回值必须是字典类型!")
                             raise Exception()
@@ -172,6 +180,10 @@ class Spider:
                         if isinstance(result, dict):
                             result["channel"] = channel
                             result["tag"] = tag
+                            self._result_queue.put(result)
+                        if isinstance(result, list):
+                            result.append(channel)
+                            result.append(tag)
                             self._result_queue.put(result)
                         else:
                             logger.error("返回值必须是字典类型!")
@@ -234,22 +246,35 @@ class Spider:
 
     def save(self):
         try:
-            show_table_sql = "show tables"
-            result = self.Mysql.diy_sql(show_table_sql)
-            results = [i["Tables_in_%s" % self.dbname] for i in result]
-            if self.table_name in results:
-                data = self._result_queue.get()
-                channel = data["channel"]
-                tag = data["tag"]
-                data.pop("channel")
-                data.pop("tag")
-                self.insql(self.table_name, conditions=data)
+            datas = self._result_queue.get()
+            if isinstance(datas, dict):
+                table_name = datas.get("table_name", self.table_name)
+                if table_name not in self.tables:
+                    self.Mysql.create_table(self.table_name, datas)
+                    logger.warning("为填写表名，默认建立以脚本名为表名的表")
+                channel = datas.pop("channel")
+                tag = datas.pop("tag")
+                self.insql(table_name, conditions=datas)
+                channel.basic_ack(delivery_tag=tag.delivery_tag)
+
+            elif isinstance(datas, list):
+                tag = datas.pop()
+                channel = datas.pop()
+                for data in datas:
+                    if isinstance(data, dict):
+                        table_name = data.get("table_name", self.table_name)
+                        if table_name not in self.tables:
+                            self.Mysql.create_table(self.table_name, data)
+                            logger.warning("为填写表名，默认建立以脚本名为表名的表")
+                        self.insql(table_name, conditions=data)
+                    else:
+                        logger.error("返回值必须是字典类型!")
+                        raise Exception()
+
                 channel.basic_ack(delivery_tag=tag.delivery_tag)
             else:
-                pass
+                logger.error("返回值必须是字典类型!")
+                raise Exception()
         except Exception:
             traceback.print_exc()
             os._exit(1)
-
-    def save_pretreatment(self):
-        pass

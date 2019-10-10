@@ -94,22 +94,6 @@ class MySql:
         self.close(conn, cursor)
         return result
 
-    def create_db(self):
-        if hasattr(setting, "db_dict"):
-            db_dict = getattr(setting, "db_dict")
-            db_name = db_dict["db"]
-            logger.debug("建立数据库%s " % db_name)
-            character = db_dict["character"]
-            if character in ["utf8", "UTF8", "utf-8", "UTF-8"]:
-                character = "utf8mb4"
-            sql = r"create database if not exists {} character set {};".format(db_name, character)
-            conn, cursor = self.open()
-            cursor.execute(sql,)
-            sql = self.create_table(db_name, cursor)
-            cursor.execute(sql, )
-            conn.commit()
-            self.close(conn, cursor)
-
     def use_table(self, tablename):
         conn, cursor = self.open()
         sql = "USE %s" % tablename
@@ -117,38 +101,25 @@ class MySql:
         conn.commit()
         self.close(conn, cursor)
 
-    def create_table(self, db_name, cursor):
-        if hasattr(setting, "tb_dict"):
-            use_sql = "use {}".format(db_name)
-            cursor.execute(use_sql)
-            tb_dict = getattr(setting, "tb_dict")
-            table_name = tb_dict["table_name"]
-            charset = tb_dict["charset"]
-            if charset in ["utf8", "UTF8", "utf-8", "UTF-8"]:
-                charset = "utf8mb4"
-            comment = tb_dict["comment"]
-            engine = tb_dict["engine"]
-            primary_key = tb_dict["primary_key"]
-            index = tb_dict.get("index", "")
-            tb_dict.pop("table_name")
-            tb_dict.pop("charset")
-            tb_dict.pop("comment")
-            tb_dict.pop("engine")
-            tb_dict.pop("primary_key")
-            tb_dict.pop("index")
-            sql1 = "create table if not exists {}".format(table_name)
-            sql2 = "{},".format(primary_key)
-            sqls = []
-            sql3 = ''
-            if tb_dict:
-                for key, evl in tb_dict.items():
-                    sqls.append("{} {},".format(key, evl))
-                if index:
-                    sql3 = 'index info({})'.format(index)
-            sql4 = "engine = {} default charset = {} comment = '{}';".format(engine, charset, comment)
-            sql = sql1 + "(" + sql2 + "".join(sqls) + sql3 + ")" + sql4
-            logger.debug("建立表%s " % table_name)
-            return sql
+    def create_table(self, table_name, conditions):
+        sql1 = """CREATE TABLE %s ( 
+                        id int primary key AUTO_INCREMENT, 
+                        """ % table_name
+        tmp = ""
+        for k, v in conditions:
+            if isinstance(v, int):
+                tmp += " %s int ," % k
+            elif isinstance(v, str) and len(v) < 200:
+                tmp += " %s varchar(%s) ," % (k, len(v)+50)
+            elif isinstance(v, str) and len(v) > 200:
+                tmp += " %s text ," % k
+        tmp.replace(",", ")")
+        sql2 = "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
+        sql = sql1 + tmp + sql2
+        conn, cursor = self.open()
+        cursor.execute(sql)
+        conn.commit()
+        self.close(conn, cursor)
 
 
 class Sql:
