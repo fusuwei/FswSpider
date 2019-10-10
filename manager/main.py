@@ -1,18 +1,14 @@
-from tools import req, log, RabbitMq, MySql, get_md5, ExceptErrorThread, get_cookies
-from tools.proxy import get_ip
+from tools import request, log, RabbitMq, MySql, get_md5, ExceptErrorThread, get_cookies
 from tools.user_agents import get_ua
+from queue import Queue
+from threading import Thread
 import time
-import re
 import abc
 import asyncio
-import configparser
-from importlib import import_module
-from threading import Thread
 import setting
 import json
 import random
 import traceback
-import sys
 import os
 logger = log(__name__)
 PATH = setting.PATH
@@ -20,54 +16,123 @@ PATH = setting.PATH
 
 class Spider:
     def __init__(self):
+        # 爬虫脚本配置
+        self.spider_name = ''
+        self.async_number = 1
+        self.auto_proxy = False
+        self.auto_cookies = False
+        self.auto_headers = True
+        self.allow_code = []
         self._url_md5 = set()
 
-        self.allow_code = []
+        # 数据库配置
+
+        self.mysql_host = "127.0.0.1"
+        self.mysql_user = "root"
+        self.mysql_pwd = ""
+        self.mysql_port = 3306
+        self.dbname = "FswSpider"
+        self.table_name = ""
+
+        # RabbitMq配置
+        self.rabbitmq_host = "127.0.0.1"
+        self.rabbitmq_user = "root"
+        self.rabbitmq_pwd = ""
+        self.is_purge = False
+
+        self._result_queue = Queue()
+
+    def init(self):
+        # 爬虫配置初始化
+        self.spider_name = setting.spider_name
+        self.function = setting.function
+
+        # mysql连接
+        if self.dbname:
+            if not self.mysql_host:
+                self.mysql_host = setting.mysql_host
+            if not self.mysql_user:
+                self.mysql_user = setting.mysql_user
+            if not self.mysql_pwd:
+                self.mysql_pwd = setting.mysql_pwd
+                if not self.mysql_pwd:
+                    logger.error("没有mysql密码！")
+                    os._exit(-1)
+            if not self.mysql_port:
+                self.mysql_port = setting.mysql_port
+            self.Mysql = MySql.mysql_pool(dbname=self.dbname, mysql_host=self.mysql_host, mysql_port=self.mysql_port,
+                                          mysql_user=self.mysql_user, mysql_pwd=self.mysql_pwd
+                                          )
+            self.insql = self.Mysql.insql
+            self.delete = self.Mysql.delete
+            self.select = self.Mysql.select
+        else:
+            logger.error("请配置数据库苦命")
+            os._exit(-1)
+        # rabbitmq连接
+        if self.spider_name:
+            if not self.rabbitmq_host:
+                self.rabbitmq_host = setting.rabbitmq_host
+            if not self.rabbitmq_user:
+                self.rabbitmq_user = setting.rabbitmq_user
+            if not self.rabbitmq_pwd:
+                self.rabbitmq_pwd = setting.rabbitmq_pwd
+                if not self.rabbitmq_pwd:
+                    logger.error("RabbitMq密码！")
+                    os._exit(-1)
+            self.Rabbit = RabbitMq.connect(self.spider_name)
+
+        # 其他参数
         self._produce_count = 1
 
-        self.async_number = None
-        self.function = None
-        self.spider_name = None
-        self.is_purge = None
+    def produce(self, message=None):
+        logger.debug("开始生产！")
+        if self.function == "m":
+            if hasattr(self, "start_produce"):
+                start_produce = getattr(self, "start_produce")
+                if self.Rabbit.queue.method.message_count and self.is_purge:
+                    self.Rabbit.purge(self.spider_name)
+                for i, message in enumerate(start_produce()):
+                    md5 = get_md5([message.get("url", ""), message.get("data", '')])
+                    if md5 not in self._url_md5:
+                        print("[%d]生产：" % (i+1), message)
+                        message = json.dumps(message)
+                        self.Rabbit.pulish(message)
+                        self._url_md5.add(md5)
 
-        self.table_name = None
-        self.dbname = None
+        elif self.function == "w":
+            md5 = get_md5([message.get("url", ""), message.get("data", '')])
+            if md5 not in self._url_md5:
+                print("[%d]生产：" % (self._produce_count + 1), message)
+                message = json.dumps(message)
+                self.Rabbit.pulish(message)
 
-        self.is_create_sql = setting.is_create_sql
-
-        self.proxy_flag = True
-
-    def init(self, auto_proxy=False, auto_cookies=False, auto_headers=True):
-        async_number = self.__getattribute__('async_number')
-        if not async_number:
-            self.async_number = setting.async_number
-        function = self.__getattribute__('function')
-        if not function:
-            self.function = setting.function
-
-        spider_name = self.__getattribute__('spider_name')
-        if not spider_name:
-            self.spider_name = setting.spider_name
-
-        is_purge = self.__getattribute__('is_purge')
-        if not is_purge:
-            self.is_purge = setting.is_purge
-
-        if auto_proxy:
-            self.auto_proxy = auto_proxy
-            get_ip()
-        self.auto_cookies = auto_cookies
-        self.auto_headers = auto_headers
-        self.rabbit = RabbitMq.connect(self.spider_name)
-        if self.is_create_sql:
-            self.mysql = MySql.mysql_pool()
-            self.mysql.create_db()
-        else:
-            self.mysql = MySql.mysql_pool(self.dbname)
+    def consume(self):
+        # heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
+        # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
+        # heartbeat.startheartbeat()  # 开启心跳保护
+        self.Rabbit.consume(callback=self.callback, limit=self.async_number)
+        self.Rabbit.del_queue(self.spider_name)
+        print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        print("运行完..")
 
     def start_loop(self, loop):
         asyncio.set_event_loop(loop)
         loop.run_forever()
+
+    def start_consume(self, ):
+
+        self.new_loop = asyncio.new_event_loop()
+
+        loop_thread = Thread(target=self.start_loop, args=(self.new_loop,))
+        loop_thread.setDaemon(True)
+        loop_thread.start()
+
+        save_data = Thread(target=self.save)
+        save_data.setDaemon(True)
+        save_data.start()
+
+        self.consume()
 
     @abc.abstractmethod
     def start_produce(self):
@@ -84,36 +149,35 @@ class Spider:
             logger.debug("开始请求url为：%s" % message["url"])
             message = self.pretreatment(message)
             message = self.remessage(message)
-            url = message.get("url", None)
-            callback = message.get("callback", "parse")
-            max_times = message.get("max_times", 3)
-            method = message.get("method", "GET")
-            data = message.get("data", None)
-            params = message.get("params", None)
-            headers = message.get("headers", None)
-            proxies = message.get("proxies", None)
-            timeout = message.get("timeout", 10)
-            json = message.get("json", None)
-            cookies = message.get("cookies", None)
-            allow_redirects = message.get("allow_redirects", False)
-            verify_ssl = message.get("verify_ssl", False)
-            limit = message.get("limit", 100)
-            if proxies and "https" in proxies:
-                proxies = proxies.replace("https", "http")
-            if url and "http" in url:
-                res = await req.request(url=url, method=method, data=data, params=params, headers=headers,
-                                        proxies=proxies, timeout=timeout, json=json, cookies=cookies,
-                                        allow_redirects=allow_redirects, verify_ssl=verify_ssl, limit=limit,
-                                        max_times=max_times, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+            res = await request(message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+            if isinstance(res, dict):
+                callback = res["callback"]
                 if callback and hasattr(self, callback):
-                    self.__getattribute__(callback)(res)
-                    channel.basic_ack(delivery_tag=tag.delivery_tag)
+                    result = self.__getattribute__(callback)(res)
+                    if result:
+                        if isinstance(result, dict):
+                            result["channel"] = channel
+                            result["tag"] = tag
+                            self._result_queue.put(result)
+                        else:
+                            logger.error("返回值必须是字典类型!")
+                            raise Exception()
                 else:
                     raise ValueError("必须构建回调函数")
             else:
+                callback = res.callback
                 if callback and hasattr(self, callback):
-                    self.__getattribute__(callback)(message)
-                    channel.basic_ack(delivery_tag=tag.delivery_tag)
+                    result = self.__getattribute__(callback)(res)
+                    if result:
+                        if isinstance(result, dict):
+                            result["channel"] = channel
+                            result["tag"] = tag
+                            self._result_queue.put(result)
+                        else:
+                            logger.error("返回值必须是字典类型!")
+                            raise Exception()
+                else:
+                    raise ValueError("必须构建回调函数")
         except Exception:
             traceback.print_exc()
             os._exit(1)
@@ -164,124 +228,28 @@ class Spider:
     def remessage(self, message):
         return message
 
-    def produce(self, message=None, if_empty=False):
-        logger.debug("开始生产！")
-        if self.function == "m":
-            if hasattr(self, "start_produce"):
-                start_produce = getattr(self, "start_produce")
-                if not self.rabbit.queue.method.message_count or not self.is_purge:
-                    pass
-                elif self.is_purge:
-                    self.rabbit.purge(self.spider_name)
-                for i, message in enumerate(start_produce()):
-                    md5 = get_md5([message.get("url", ""), message.get("data", '')])
-                    if md5 not in self._url_md5:
-                        print("[%d]生产：" % (i+1), message)
-                        message = json.dumps(message)
-                        self.rabbit.pulish(message)
-                        self._url_md5.add(md5)
-
-        elif self.function == "w":
-            md5 = get_md5([message.get("url", ""), message.get("data", '')])
-            if md5 not in self._url_md5:
-                print("[%d]生产：" % (self._produce_count + 1), message)
-                message = json.dumps(message)
-                self.rabbit.pulish(message)
-
-    def listen(self):
-        pass
-
-    def consume(self):
-        # heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
-        # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
-        # heartbeat.startheartbeat()  # 开启心跳保护
-        self.rabbit.consume(callback=self.callback, limit=self.async_number)
-        self.rabbit.del_queue(self.spider_name)
-        print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        print("运行完..")
-
     def callback(self, channel, method, properties, body):
         message = json.loads(body)
         asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
 
-    def insql(self, tablename, keys=None, values=None, items=None):
-        # print(keys, values, items)
-        if keys and not isinstance(keys, list):
-            logger.error("keys 必须是 list")
-            raise ValueError()
-        if values and not isinstance(values, list):
-            logger.error("values 必须是 list")
-            raise ValueError()
-        if items and not isinstance(values, dict):
-            logger.error("items 必须是 dict")
-            raise ValueError()
-        if keys and values and not len(keys) != len(values):
-            logger.error("keys 和 values 不一样长")
-            raise ValueError()
-        # ty = lambda x: "'%s'" % x if isinstance(x, str) or "str" in str(type(x)) or "Str" in str(type(x)) else x
-        # if values:
-        #     values = [ty(i) for i in values]
-        # if items:
-        #     for k, v in items.items():
-        #         items[k] = ty(v)
-        self.mysql.insql(tablename, keys, values, items)
+    def save(self):
+        try:
+            show_table_sql = "show tables"
+            result = self.Mysql.diy_sql(show_table_sql)
+            results = [i["Tables_in_%s" % self.dbname] for i in result]
+            if self.table_name in results:
+                data = self._result_queue.get()
+                channel = data["channel"]
+                tag = data["tag"]
+                data.pop("channel")
+                data.pop("tag")
+                self.insql(self.table_name, conditions=data)
+                channel.basic_ack(delivery_tag=tag.delivery_tag)
+            else:
+                pass
+        except Exception:
+            traceback.print_exc()
+            os._exit(1)
 
-    def delete(self, tablename, key, value):
-        self.mysql.delete(tablename, key, value,)
-
-    def select(self, tablename, key=None, value=None, v="*", term=None, one=False):
-        self.mysql.select(tablename, key, value, v, term, one)
-
-    def run(self,):
-        self.new_loop = asyncio.new_event_loop()
-
-        loop_thread = Thread(target=self.start_loop, args=(self.new_loop,))
-        loop_thread.setDaemon(True)
-        loop_thread.start()
-
-        self.consume()
-
-
-def runner(path=None, function=None, spider_name=None, async_number=None):
-
-    if not path and not function:
-        cfg = configparser.ConfigParser()
-        cfg.read(PATH + "\manager\_spider.cfg", encoding="utf8")
-        path = cfg.get('spider', 'path')
-        function = cfg.get('spider', 'function')
-        spider_name = cfg.get('spider', 'spider_name', fallback='')
-        async_number = cfg.get('spider', 'async_number', fallback=1)
-
-        keys = [key for key in cfg.keys()]
-        if "create db" in keys and "create table" in keys:
-            db_dict, tb_dict = {}, {}
-            for key, val in cfg.items("create db"):
-                db_dict[key] = val
-
-            for key, val in cfg.items("create table"):
-                tb_dict[key] = val
-            setting.db_dict = db_dict
-            setting.tb_dict = tb_dict
-
-    if async_number:
-        setting.async_number = async_number
-    if function:
-        setting.function = function
-    if spider_name:
-        setting.spider_name = spider_name
-    else:
-        if path:
-            spider_name = re.search("([0-9a-zA-Z]+)\.py", path).group(1)
-            setting.spider_name = spider_name
-        else:
-            raise ValueError("必须指定路径！")
-
-    if path and path.endswith(".py"):
-        path = "spider." + path.replace("/", '.').strip(".py")
-
-        spider_cls = import_module(path, "MySpider")
-        spider = spider_cls.MySpider()
-        if function == "m":
-            spider.produce()
-        elif function == "w":
-            spider.run()
+    def save_pretreatment(self):
+        pass

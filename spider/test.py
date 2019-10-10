@@ -1,5 +1,5 @@
 from spider import Spider
-from manager.run import start
+from manager.run import run
 
 
 class MySpider(Spider):
@@ -8,7 +8,6 @@ class MySpider(Spider):
         self.dbname = "test"
         self.table_name = 'test'
         self.is_purge = True
-        self.init( auto_proxy=True)
 
     def start_produce(self):
         for i in range(2):
@@ -17,12 +16,9 @@ class MySpider(Spider):
 
     def parse(self, res):
         print(res.status_code)
-        self.produce({"url": "weqwewq"})
-        self.insql("test", values=[0, res.text])
+        # self.produce({"url": "weqwewq"})
+        return {"content": str(res.status_code)}
 
 
 if __name__ == '__main__':
-    run = start()
     run(path='test.py', function="w", async_number=1)
-    # import requests
-    # requests.get("https://www.baidu.com/", proxies={"http":""})

@@ -6,17 +6,29 @@ import setting
 import random
 logger = log(__name__)
 
-
-class Myrequest:
-    def __init__(self):
-        pass
-
-    async def request(self, url=None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=10,
-                      json=None, cookies=None, allow_redirects=False, verify_ssl=False, limit=100, callback="parse",
-                      max_times=3, auto_proxy=False, allow_code=None):
-        if auto_proxy:
-            proxies = random.choice(setting.proxies)
-        conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=limit)
+'''
+ url=None, method="GET", data=None, params=None, headers=None, proxies=None, timeout=10,
+                  json=None, cookies=None, allow_redirects=False, verify_ssl=False, limit=100, callback="parse",
+                  max_times=3, auto_proxy=False, allow_code=None
+'''
+async def request(message, auto_proxy=False, allow_code=None):
+    url = message.get("url", None)
+    callback = message.get("callback", "parse")
+    max_times = message.get("max_times", 3)
+    method = message.get("method", "GET")
+    data = message.get("data", None)
+    params = message.get("params", None)
+    headers = message.get("headers", None)
+    proxies = message.get("proxies", None)
+    timeout = message.get("timeout", 10)
+    json = message.get("json", None)
+    cookies = message.get("cookies", None)
+    allow_redirects = message.get("allow_redirects", False)
+    verify_ssl = message.get("verify_ssl", False)
+    if auto_proxy:
+        proxies = random.choice(setting.proxies)
+    if url and "http" in url:
+        conn = aiohttp.TCPConnector(verify_ssl=verify_ssl,)
         async with aiohttp.ClientSession(connector=conn, cookies=cookies) as session:
             max_times += 1
             for i in range(1, max_times):
@@ -50,48 +62,51 @@ class Myrequest:
                         charset = res.charset
                         cookies = res.cookies
                         headers = res.headers
-                        text = self._parse_content(charset, content)
+                        text = _parse_content(charset, content)
                         return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
                                         headers=headers, callback=callback, proxies=proxies, )
                     elif allow_code and status_code in allow_code:
                         charset = res.charset
                         cookies = res.cookies
                         headers = res.headers
-                        text = self._parse_content(charset, content)
+                        text = _parse_content(charset, content)
                         return Response(url=url, content=content, status_code=status_code, text=text, cookies=cookies,
                                         headers=headers, callback=callback, proxies=proxies, )
                     else:
                         proxies = random.choice(setting.proxies)
                         logger.debug("更换ip为：%s" % proxies)
                         logger.error("第%d次请求！状态码为%s" % (i, status_code))
+    else:
+        return message
 
-    def quest(self):
-        return requests
+def quest():
+    return requests
 
-    def _parse_content(self, charset, content):
-        if charset:
-            try:
-                text = content.decode(charset)
-            except UnicodeDecodeError:
-                try:
-                    text = content.decode('GBK')
-                except UnicodeDecodeError:
-                    try:
-                        text = content.decode('gb2312')
-                    except UnicodeDecodeError:
-                        text = content.decode('utf-8', "ignore")
-        else:
+
+def _parse_content(charset, content):
+    if charset:
+        try:
+            text = content.decode(charset)
+        except UnicodeDecodeError:
             try:
                 text = content.decode('GBK')
             except UnicodeDecodeError:
                 try:
-                    text = content.decode('GBK')
+                    text = content.decode('gb2312')
                 except UnicodeDecodeError:
-                    try:
-                        text = content.decode('gb2312')
-                    except UnicodeDecodeError:
-                        text = content.decode('utf-8', "ignore")
-        return text
+                    text = content.decode('utf-8', "ignore")
+    else:
+        try:
+            text = content.decode('GBK')
+        except UnicodeDecodeError:
+            try:
+                text = content.decode('GBK')
+            except UnicodeDecodeError:
+                try:
+                    text = content.decode('gb2312')
+                except UnicodeDecodeError:
+                    text = content.decode('utf-8', "ignore")
+    return text
 
 
 class Response:
