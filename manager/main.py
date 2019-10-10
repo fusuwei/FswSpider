@@ -43,6 +43,10 @@ class Spider:
         self._result_queue = Queue()
 
     def init(self):
+        """
+        初始化函数， mysql, RabbitMq 连接, 其他配置
+        :return:
+        """
         # 爬虫配置初始化
         self.spider_name = setting.spider_name
         self.function = setting.function
@@ -92,6 +96,11 @@ class Spider:
         self._produce_count = 1
 
     def produce(self, message=None):
+        """
+        生产函数，把爬虫数据存到RabbitMq中
+        :param message: list 爬虫数据
+        :return:
+        """
         logger.debug("开始生产！")
         if self.function == "m":
             if hasattr(self, "start_produce"):
@@ -114,6 +123,10 @@ class Spider:
                 self.Rabbit.pulish(message)
 
     def consume(self):
+        """
+        消费函数
+        :return:
+        """
         # heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
         # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         # heartbeat.startheartbeat()  # 开启心跳保护
@@ -123,11 +136,19 @@ class Spider:
         print("运行完..")
 
     def start_loop(self, loop):
+        """
+        再后台一直接受loop事件
+        :param loop:
+        :return:
+        """
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
     def start_consume(self, ):
-
+        """
+        消费启动器， 负责把函数运行起来
+        :return:
+        """
         self.new_loop = asyncio.new_event_loop()
 
         loop_thread = Thread(target=self.start_loop, args=(self.new_loop,))
@@ -151,6 +172,14 @@ class Spider:
         pass
 
     async def request(self, message, channel, tag, properties):
+        """
+        请求函数，
+        :param message: list 爬虫信息
+        :param channel:
+        :param tag:
+        :param properties:
+        :return:
+        """
         try:
             logger.debug("开始请求url为：%s" % message["url"])
             message = self.pretreatment(message)
@@ -240,13 +269,30 @@ class Spider:
         return message
 
     def remessage(self, message):
+        """
+        low版中间件
+        :param message:
+        :return:
+        """
         return message
 
     def callback(self, channel, method, properties, body):
+        """
+        把请求函数传到异步事件中等待执行
+        :param channel:
+        :param method:
+        :param properties:
+        :param body:
+        :return:
+        """
         message = json.loads(body)
         asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
 
     def save(self):
+        """
+        存储函数，负责吧爬下的数据存到mysql数据库中
+        :return:
+        """
         try:
             datas = self._result_queue.get()
             if isinstance(datas, dict):

@@ -4,7 +4,7 @@ import os
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 # log等级
-log_grade = "error"
+log_grade = "warning"
 
 # 爬虫设置
 spider_name = ""
@@ -15,11 +15,8 @@ function = ""
 rabbitmq_host = "127.0.0.1"
 rabbitmq_user = "fsw"
 rabbitmq_pwd = "123456"
-# 如果rabbitmq队列里面有数据时是否清除
-is_purge = False
 
 # mysql
-is_create_sql = False
 mysql_host = "127.0.0.1"
 mysql_user = "root"
 mysql_pwd = "123456"
