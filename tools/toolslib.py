@@ -7,6 +7,8 @@ import setting
 from selenium import webdriver
 import time
 from selenium.webdriver.chrome.options import Options
+import asyncio
+from pyppeteer import launch
 
 
 # url去重MD5
@@ -82,6 +84,9 @@ def get_cookies(url, headless=True, executable_path=None, proxy=None):
     browser1.close()
     browser1.quit()
     return cookie
+
+
+
 
 if __name__ == '__main__':
     a = get_cookies("https://www.baidu.com/")

@@ -1,0 +1,46 @@
+
+launch()函数参数
+ignoreHTTPSErrors（布尔）：是否忽略HTTPS错误。默认为 False。
+headless（布尔）：是否以无头模式运行浏览器。默认为， True除非appMode或devtools选项为True。
+executablePath （str）：运行而不是默认捆绑的Chromium的Chromium或Chrome可执行文件的路径。
+slowMo （int | float）：将pyppeteer操作减慢指定的毫秒数。
+args （List [str]）：传递给浏览器进程的其他参数（标志）。“dumpio”
+       {
+            沙箱模式“--no-sandbox”，是否更换代理“--proxy-server”
+            参数：--user-data-dir=UserDataDir
+        用途：自订使用者帐户资料夹（如：–user-data-dir="D:\temp\Chrome User Data"）
+        参数：--process-per-tab
+        用途：每个分页使用单独进程
+        参数：--process-per-site
+        用途：每个站点使用单独进程
+        参数：--in-process-plugins
+        用途：插件不启用单独进程
+        参数：--disable-popup-blocking
+        用途：禁用弹出拦截
+        参数：--disable-javascript
+        用途：禁用JavaScript
+        参数：--disable-java
+        用途：禁用Java
+        参数：--disable-plugins
+        用途：禁用插件
+        参数：–disable-images
+        用途：禁用图像
+        参数：--omnibox-popup-count=”num”
+        用途：将网址列弹出的提示选单数量改为num个
+        参数：--enable-vertical-tabs
+        用途：调整chrome游览器标签存放在左边，非顶部
+
+       }
+ignoreDefaultArgs（布尔）：请勿使用pyppeteer的默认参数。这是危险的选择。小心使用。
+handleSIGINT（布尔）：在Ctrl + C上关闭浏览器进程。默认为 True。
+handleSIGTERM（布尔）：关闭SIGTERM上的浏览器进程。默认为True。
+handleSIGHUP（布尔）：关闭SIGHUP上的浏览器进程。默认为 True。
+dumpio（布尔）：是否将浏览器进程stdout和stderr传递到process.stdout和中process.stderr。默认为False。
+userDataDir （str）：用户数据目录的路径。
+env（字典）：指定浏览器将可见的环境变量。默认与python进程相同。
+devtools（布尔）：是否为每个选项卡自动打开DevTools面板。如果是此选项True，headless则将设置该选项 False。
+logLevel（int | str）：日志级别以打印日志。默认与根记录器相同。
+autoClose（布尔）：脚本完成后自动关闭浏览器进程。默认为True。
+loop（asyncio.AbstractEventLoop）：事件循环（实验性）。
+appMode （布尔）：已弃用。
+
