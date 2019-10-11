@@ -1,5 +1,4 @@
 import tools
-from tools.user_agents import get_ua
 from tools.built_in.middleware import middleware
 from queue import Queue
 from threading import Thread
@@ -8,7 +7,6 @@ import abc
 import asyncio
 import setting
 import json
-import random
 import traceback
 import os
 logger = tools.log(__name__)
