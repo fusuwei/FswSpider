@@ -1,4 +1,3 @@
-import asyncio
 import aiohttp
 import requests
 from tools.built_in.log import log

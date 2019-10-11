@@ -196,7 +196,7 @@ class Sql:
         '''
         tmplist = []
         for k, v in dictin.items():
-            tmp = "%s='%s'" % (str(pymysql.escape_string(k)), str(pymysql.escape_string(v)))
+            tmp = "%s='%s'" % (pymysql.escape_string(str(k)), pymysql.escape_string(str(v)))
             tmplist.append(' ' + tmp + ' ')
         return ','.join(tmplist)
 
@@ -207,6 +207,6 @@ class Sql:
         '''
         tmplist = []
         for k, v in dictin.items():
-            tmp = "%s='%s'" % (str(pymysql.escape_string(k)), str(pymysql.escape_string(v)))
+            tmp = "%s='%s'" % (pymysql.escape_string(str(k)), pymysql.escape_string(str(v)))
             tmplist.append(' ' + tmp + ' ')
         return ' and '.join(tmplist)
