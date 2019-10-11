@@ -1,5 +1,6 @@
 import tools
 from tools.user_agents import get_ua
+from tools.built_in.middleware import middleware
 from queue import Queue
 from threading import Thread
 import time
@@ -190,7 +191,9 @@ class Spider:
         """
         try:
             logger.debug("开始请求url为：%s" % message["url"])
-            message = self.pretreatment(message)
+            message = middleware(message, auto_proxy=self.auto_proxy, auto_cookies=self.auto_cookies,
+                                 auto_headers=self.auto_headers
+                                 )
             message = self.remessage(message)
             if message.get("is_async", ""):
                 res = await tools.request(message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
@@ -235,50 +238,6 @@ class Spider:
         except Exception:
             traceback.print_exc()
             os._exit(1)
-
-    def pretreatment(self, message):
-        """
-        预处理
-        :param message:
-        :return:
-        """
-        if self.auto_headers:
-            headers = message.get("headers", get_ua())
-            if isinstance(headers, dict):
-                ua = get_ua()
-                logger.debug("自动设置user-agent为：%s" % headers)
-                headers["User-Agent"] = ua
-                message["headers"] = headers
-            else:
-                logger.debug("自动设置user-agent为：%s" % headers)
-                message["headers"] = {"User-Agent": headers}
-        proxies = message.get("proxies", "")
-        if proxies and isinstance(proxies, str) and "http" not in proxies:
-            proxies = "http://"+proxies
-        elif proxies and (isinstance(proxies, list) or isinstance(proxies, tuple)):
-            proxy = random.choice(proxies)
-            if "http" not in proxy:
-                proxies = "http://" + proxy
-            else:
-                proxies = proxy
-        elif proxies and isinstance(proxies, dict):
-            proxy = random.choice(list(proxies.values()))
-            if "http" not in proxy:
-                proxies = "http://" + proxy
-            else:
-                proxies = proxy
-        message["proxies"] = proxies
-        if self.auto_cookies:
-            if self.auto_proxy:
-                cookies = message.get("cookies", tools.get_cookies(url=message["url"], proxy=random.choice(setting.proxies)))
-            else:
-                cookies = message.get("cookies", tools.get_cookies(url=message["url"]))
-            logger.debug("自动设置获取cookies为：%s" % cookies)
-            if not message["headers"]:
-                message["headers"] = {}
-            message["headers"]["cookies"] = cookies
-        message["is_async"] = True
-        return message
 
     def remessage(self, message):
         """
