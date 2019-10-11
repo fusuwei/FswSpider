@@ -1,4 +1,4 @@
-from tools import request, log, RabbitMq, MySql, get_md5, ExceptErrorThread, get_cookies
+import tools
 from tools.user_agents import get_ua
 from queue import Queue
 from threading import Thread
@@ -10,7 +10,7 @@ import json
 import random
 import traceback
 import os
-logger = log(__name__)
+logger = tools.log(__name__)
 PATH = setting.PATH
 
 
@@ -71,7 +71,7 @@ class Spider:
                     os._exit(-1)
             if not self.mysql_port:
                 self.mysql_port = setting.mysql_port
-            self.Mysql = MySql.mysql_pool(dbname=self.dbname, mysql_host=self.mysql_host, mysql_port=self.mysql_port,
+            self.Mysql = tools.MySql.mysql_pool(dbname=self.dbname, mysql_host=self.mysql_host, mysql_port=self.mysql_port,
                                           mysql_user=self.mysql_user, mysql_pwd=self.mysql_pwd
                                           )
             self.insql = self.Mysql.insql
@@ -97,10 +97,11 @@ class Spider:
                 if not self.rabbitmq_pwd:
                     logger.error("RabbitMq密码！")
                     os._exit(-1)
-            self.Rabbit = RabbitMq.connect(self.spider_name)
+            self.Rabbit = tools.RabbitMq.connect(self.spider_name)
 
         # 其他参数
         self._produce_count = 1
+        self.selector = tools.selector
 
     def produce(self, message=None):
         """
@@ -115,7 +116,7 @@ class Spider:
                 if self.Rabbit.queue.method.message_count and self.is_purge:
                     self.Rabbit.purge(self.spider_name)
                 for i, message in enumerate(start_produce()):
-                    md5 = get_md5([message.get("url", ""), message.get("data", '')])
+                    md5 = tools.get_md5([message.get("url", ""), message.get("data", '')])
                     if md5 not in self._url_md5:
                         print("[%d]生产：" % (i+1), message)
                         message = json.dumps(message)
@@ -123,7 +124,7 @@ class Spider:
                         self._url_md5.add(md5)
 
         elif self.function == "w":
-            md5 = get_md5([message.get("url", ""), message.get("data", '')])
+            md5 = tools.get_md5([message.get("url", ""), message.get("data", '')])
             if md5 not in self._url_md5:
                 print("[%d]生产：" % (self._produce_count + 1), message)
                 message = json.dumps(message)
@@ -191,7 +192,10 @@ class Spider:
             logger.debug("开始请求url为：%s" % message["url"])
             message = self.pretreatment(message)
             message = self.remessage(message)
-            res = await request(message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+            if message.get("is_async", ""):
+                res = await tools.request(message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+            else:
+                res = tools.quest(message, auto_proxy=False, allow_code=None)
             if isinstance(res, dict):
                 callback = res["callback"]
                 if callback and hasattr(self, callback):
@@ -266,13 +270,14 @@ class Spider:
         message["proxies"] = proxies
         if self.auto_cookies:
             if self.auto_proxy:
-                cookies = message.get("cookies", get_cookies(url=message["url"], proxy=random.choice(setting.proxies)))
+                cookies = message.get("cookies", tools.get_cookies(url=message["url"], proxy=random.choice(setting.proxies)))
             else:
-                cookies = message.get("cookies", get_cookies(url=message["url"]))
+                cookies = message.get("cookies", tools.get_cookies(url=message["url"]))
             logger.debug("自动设置获取cookies为：%s" % cookies)
             if not message["headers"]:
                 message["headers"] = {}
             message["headers"]["cookies"] = cookies
+        message["is_async"] = True
         return message
 
     def remessage(self, message):
