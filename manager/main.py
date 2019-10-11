@@ -17,8 +17,6 @@ PATH = setting.PATH
 class Spider:
     def __init__(self):
         # 爬虫脚本配置
-        self.spider_name = ''
-        self.async_number = 1
         self.auto_proxy = False
         self.auto_cookies = False
         self.auto_headers = True
@@ -26,7 +24,6 @@ class Spider:
         self._url_md5 = set()
 
         # 数据库配置
-
         self.mysql_host = "127.0.0.1"
         self.mysql_user = "root"
         self.mysql_pwd = ""
@@ -49,7 +46,15 @@ class Spider:
         """
         # 爬虫配置初始化
         self.spider_name = setting.spider_name
+        if not self.spider_name:
+            pass
         self.function = setting.function
+        if not self.function:
+            self.function = "w"
+
+        self.async_number = setting.async_number
+        if not self.async_number:
+            self.async_number = 1
 
         # mysql连接
         if not self.table_name:
@@ -296,35 +301,40 @@ class Spider:
         :return:
         """
         try:
-            datas = self._result_queue.get()
-            if isinstance(datas, dict):
-                table_name = datas.get("table_name", self.table_name)
-                channel = datas.pop("channel")
-                tag = datas.pop("tag")
-                if table_name not in self.tables:
-                    self.Mysql.create_table(self.table_name, datas)
-                    logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
-                self.insql(table_name, conditions=datas)
-                channel.basic_ack(delivery_tag=tag.delivery_tag)
+            while True:
+                datas = self._result_queue.get()
+                if isinstance(datas, dict):
+                    table_name = datas.get("table_name", self.table_name)
+                    channel = datas.pop("channel")
+                    tag = datas.pop("tag")
+                    if table_name not in self.tables:
+                        self.Mysql.create_table(self.table_name, datas)
+                        logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
+                    self.insql(table_name, conditions=datas)
+                    channel.basic_ack(delivery_tag=tag.delivery_tag)
 
-            elif isinstance(datas, list):
-                tag = datas.pop()
-                channel = datas.pop()
-                for data in datas:
-                    if isinstance(data, dict):
-                        table_name = data.get("table_name", self.table_name)
-                        if table_name not in self.tables:
-                            self.Mysql.create_table(self.table_name, data)
-                            logger.warning("为填写表名，默认建立以脚本名为表名的表")
-                        self.insql(table_name, conditions=data)
-                    else:
-                        logger.error("返回值必须是字典类型!")
-                        raise Exception()
+                elif isinstance(datas, list):
+                    tag = datas.pop()
+                    channel = datas.pop()
+                    for data in datas:
+                        if isinstance(data, dict):
+                            table_name = data.get("table_name", self.table_name)
+                            if table_name not in self.tables:
+                                self.Mysql.create_table(self.table_name, data)
+                                logger.warning("为填写表名，默认建立以脚本名为表名的表")
+                            self.insql(table_name, conditions=data)
+                        else:
+                            logger.error("返回值必须是字典类型!")
+                            raise Exception()
 
-                channel.basic_ack(delivery_tag=tag.delivery_tag)
-            else:
-                logger.error("返回值必须是字典类型!")
-                raise Exception()
+                    channel.basic_ack(delivery_tag=tag.delivery_tag)
+                else:
+                    logger.error("返回值必须是字典类型!")
+                    raise Exception()
         except Exception:
             traceback.print_exc()
             os._exit(1)
+
+    def early(self):
+        """爬虫开始之前，需要运行的代码可以放在这个函数中"""
+        pass

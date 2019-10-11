@@ -25,10 +25,13 @@ def run(path=None, function=None, spider_name=None, async_number=None):
         spider_cls = import_module(path, "MySpider")
         spider = spider_cls.MySpider()
         spider.init()
+        if hasattr(spider, "early"):
+            spider.early()
         if function == "m":
             spider.produce()
         elif function == "w":
             spider.start_consume()
+
 
 if __name__ == '__main__':
     run("text.py")
