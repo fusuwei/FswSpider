@@ -18,7 +18,7 @@ class MySpider(Spider):
     def parse(self, res):
         print(res.status_code)
         return {"content": str(res.status_code)}
-
+        pass
 
 if __name__ == '__main__':
     run(path='test.py', function="w", async_number=1)
