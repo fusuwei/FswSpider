@@ -142,6 +142,7 @@ class Spider:
         # heartbeat.startheartbeat()  # 开启心跳保护
         self.Rabbit.consume(callback=self.callback, limit=self.async_number)
         self.Rabbit.del_queue(self.spider_name)
+        tools.close_session(self.session)
         print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         print("运行完..")
 
@@ -197,50 +198,35 @@ class Spider:
             verify = message.get("verify", False)
             cookies = message.get("cookies", {})
             url = message.get("url", '')
-            if self._pre_domain_name != message["domain_name"] and message["domain_name"] is not None:
-                self.session = await tools.create_session(is_async, verify, cookies)
-
-            self._pre_domain_name = message["domain_name"]
-
+            callback = message.get("callback", "parse")
             message = self.remessage(message)
-
-            res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
-            if isinstance(res, dict):
-                callback = res["callback"]
-                if callback and hasattr(self, callback):
-                    result = self.__getattribute__(callback)(res)
-                    if result:
-                        if isinstance(result, dict):
-                            result["channel"] = channel
-                            result["tag"] = tag
-                            self._result_queue.put(result)
-                        if isinstance(result, list):
-                            result.append(channel)
-                            result.append(tag)
-                            self._result_queue.put(result)
-                        else:
-                            logger.error("返回值必须是字典类型!")
-                            raise Exception()
-                else:
-                    raise ValueError("必须构建回调函数")
+            result = None
+            if message["domain_name"] is None:
+                if hasattr(self, callback):
+                    result = self.__getattribute__(callback)(message)
             else:
-                callback = res.callback
-                if callback and hasattr(self, callback):
+                if self._pre_domain_name != message["domain_name"] and message["domain_name"] is not None:
+                    if self.session:
+                        tools.close_session(self.session)
+                    self.session = await tools.create_session(is_async, verify, cookies)
+                self._pre_domain_name = message["domain_name"]
+                res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+                if hasattr(self, callback):
                     result = self.__getattribute__(callback)(res)
-                    if result:
-                        if isinstance(result, dict):
-                            result["channel"] = channel
-                            result["tag"] = tag
-                            self._result_queue.put(result)
-                        elif isinstance(result, list):
-                            result.append(channel)
-                            result.append(tag)
-                            self._result_queue.put(result)
-                        else:
-                            logger.error("返回值必须是字典类型!")
-                            raise Exception()
+            if not result:
+                channel.basic_ack(delivery_tag=tag.delivery_tag)
+            else:
+                if isinstance(result, dict):
+                    result["channel"] = channel
+                    result["tag"] = tag
+                    self._result_queue.put(result)
+                if isinstance(result, list):
+                    result.append(channel)
+                    result.append(tag)
+                    self._result_queue.put(result)
                 else:
-                    raise ValueError("必须构建回调函数")
+                    logger.error("返回值必须是字典类型!")
+                    raise Exception()
         except Exception:
             traceback.print_exc()
             os._exit(1)

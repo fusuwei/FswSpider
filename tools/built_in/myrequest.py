@@ -16,9 +16,15 @@ async def create_session(is_async=True, verify_ssl=True, cookies=None):
     return session
 
 
-async def close_session(session, is_async=True):
+async def close(session):
+    await session.close()
+
+
+def close_session(session, is_async=True):
     if is_async:
-        await session.close()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(close(session))
+        loop.close()
     else:
         session.close()
 

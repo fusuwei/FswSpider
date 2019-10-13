@@ -105,3 +105,4 @@ venv.bak/
 .idea
 spider/*.py
 !spider/__init__.py
+!spider/test.py
