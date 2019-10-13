@@ -1,6 +1,5 @@
 import aiohttp, asyncio
 
-aiohttp.request()
 async def main(pool):  # 启动
     sem = asyncio.Semaphore(pool)
     async with aiohttp.ClientSession() as session:  # 给所有的请求，创建同一个session
