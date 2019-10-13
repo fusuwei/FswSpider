@@ -1,8 +1,9 @@
 import aiohttp
 import requests
-from tools import log
+from tools.built_in.log import log
 from tools.proxy import get_ip
 logger = log(__name__)
+requests.session()
 
 
 async def create_session(is_async=True, verify_ssl=True, cookies=None):
@@ -34,7 +35,7 @@ async def request(url, session, message=None, auto_proxy=False, allow_code=None,
     timeout = message.get("timeout", 10)
     json = message.get("json", None)
     allow_redirects = message.get("allow_redirects", False)
-    if "http" in url and session:
+    if "http" in url:
         for i in range(1, max_times+1):
             content = None
             if auto_proxy and not proxies:
@@ -141,7 +142,7 @@ if __name__ == '__main__':
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36"
     }
-    url = "http://www.baidu.com/"
+    url = "http://www.example.com/"
     loop = asyncio.get_event_loop()
     session = loop.run_until_complete(create_session(verify_ssl=True))
     coroutine = request(url, session, message={})
@@ -149,4 +150,6 @@ if __name__ == '__main__':
     coroutine1 = close_session(session)
     a = loop.run_until_complete(coroutine)
     loop.run_until_complete(coroutine1)
-    print(a.content)
+    print(a)
+
+

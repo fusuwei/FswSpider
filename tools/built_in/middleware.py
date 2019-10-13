@@ -2,10 +2,15 @@ from tools.user_agents import get_ua
 from tools.proxy import ip_process, get_ip
 from tools.toolslib import get_cookies
 import tools
+import re
 logger = tools.log(__name__)
 
 
 def middleware(message, auto_headers=False, auto_cookies=False, auto_proxy=False):
+    url = message["url"]
+    if url:
+        domain_name = re.search("(http|https)://(www.)?(\w+(\.)?)+", url).group()
+        message["domain_name"] = domain_name
     if "is_async" in message:
         is_async = message["is_async"]
     else:

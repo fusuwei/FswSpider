@@ -36,6 +36,9 @@ class Spider:
         self.rabbitmq_pwd = ""
         self.is_purge = False
 
+        self._session = None
+        self._pre_domain_name = None
+
         self._result_queue = Queue()
 
     def init(self):
@@ -157,7 +160,6 @@ class Spider:
         :return:
         """
         self.new_loop = asyncio.new_event_loop()
-
         loop_thread = Thread(target=self.start_loop, args=(self.new_loop,))
         loop_thread.setDaemon(True)
         loop_thread.start()
@@ -190,13 +192,19 @@ class Spider:
         try:
             logger.debug("开始请求url为：%s" % message["url"])
             message = middleware(message, auto_proxy=self.auto_proxy, auto_cookies=self.auto_cookies,
-                                 auto_headers=self.auto_headers
-                                 )
+                                 auto_headers=self.auto_headers)
+            is_async = message.get("is_async", True)
+            verify = message.get("verify", False)
+            cookies = message.get("cookies", {})
+            url = message.get("url", '')
+            if self._pre_domain_name != message["domain_name"] and message["domain_name"] is not None:
+                self.session = await tools.create_session(is_async, verify, cookies)
+
+            self._pre_domain_name = message["domain_name"]
+
             message = self.remessage(message)
-            if message.get("is_async", ""):
-                res = await tools.request(message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
-            else:
-                res = tools.quest(message, auto_proxy=False, allow_code=None)
+
+            res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
             if isinstance(res, dict):
                 callback = res["callback"]
                 if callback and hasattr(self, callback):

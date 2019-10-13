@@ -1,24 +1,22 @@
-import aiohttp, asyncio
-
-async def main(pool):  # 启动
-    sem = asyncio.Semaphore(pool)
-    async with aiohttp.ClientSession() as session:  # 给所有的请求，创建同一个session
-        tasks = []
-        [tasks.append(control_sem(sem, 'https://api.github.com/events?a={}'.format(i), session)) for i in
-         range(10)]  # 十次请求
-        await asyncio.wait(tasks)
+import aiohttp
+import asyncio
 
 
-async def control_sem(sem, url, session):  # 限制信号量
-    async with sem:
-        await fetch(url, session)
+async def a():
+    client_session = aiohttp.ClientSession()
+    resp = await client_session.get("https://www.baidu.com", )
+    async with resp:
+        assert resp.status == 200
+        return client_session
 
 
-async def fetch(url, session):  # 开启异步请求
-    async with session.get(url) as resp:
-        json = await resp.json()
-        print(json)
-
+async def c(client_session):
+    resp = await client_session.get("https://www.baidu.com", )
+    async with resp:
+        print(resp.status)
+        await client_session.close()
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(main(pool=2))
+future = loop.run_until_complete(a())
+print(future)
+loop.run_until_complete(c(future))
