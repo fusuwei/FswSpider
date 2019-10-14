@@ -21,6 +21,9 @@ class Spider:
         self.auto_headers = True
         self.allow_code = []
         self._url_md5 = set()
+        self.is_async = True
+        self.cookies = None
+        self.session = None
 
         # 数据库配置
         self.mysql_host = "127.0.0.1"
@@ -56,7 +59,6 @@ class Spider:
         self.async_number = setting.async_number
         if not self.async_number:
             self.async_number = 1
-        self.session = None
 
         # mysql连接
         if not self.table_name:
@@ -105,6 +107,7 @@ class Spider:
         self._produce_count = 1
         self.selector = tools.selector
         self.new_loop = asyncio.new_event_loop()
+        self.save_loop = asyncio.new_event_loop()
 
     def produce(self, message=None):
         """
@@ -143,7 +146,8 @@ class Spider:
         # heartbeat.startheartbeat()  # 开启心跳保护
         self.Rabbit.consume(callback=self.callback, limit=self.async_number)
         self.Rabbit.del_queue(self.spider_name)
-        tools.close_session(self.session)
+        tools.close_session(self.session, is_async=self.is_async)
+        self._result_queue.join()
         print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         print("运行完..")
 
@@ -164,6 +168,10 @@ class Spider:
         loop_thread = Thread(target=self.start_loop, args=(self.new_loop,))
         loop_thread.setDaemon(True)
         loop_thread.start()
+
+        # save_loop_thread = Thread(target=self.start_loop, args=(self.save_loop,))
+        # save_loop_thread.setDaemon(True)
+        # save_loop_thread.start()
 
         save_data = Thread(target=self.before_save)
         save_data.setDaemon(True)
@@ -190,16 +198,18 @@ class Spider:
         :param properties:
         :return:
         """
-
         logger.debug("开始请求url为：%s" % message["url"])
         message = middleware(message, auto_proxy=self.auto_proxy, auto_cookies=self.auto_cookies,
                              auto_headers=self.auto_headers)
+        message = self.remessage(message)
         is_async = message.get("is_async", True)
+        self.is_async = is_async
         verify = message.get("verify", False)
         cookies = message.get("cookies", {})
+        if not cookies and self.cookies:
+            cookies = self.cookies
         url = message.get("url", '')
         callback = message.get("callback", "parse")
-        message = self.remessage(message)
         result = None
         if message["domain_name"] is None:
             if hasattr(self, callback):
@@ -252,61 +262,65 @@ class Spider:
         if future.exception():
             raise future.exception()
 
-    async def save(self, datas):
+    async def save(self, mes, method, table_name, loop):
         """
         存储函数，负责吧爬下的数据存到mysql数据库中
         :return:
         """
-        if isinstance(datas, dict):
-            table_name = datas.get("table_name", self.table_name)
-            channel = datas.pop("channel")
-            tag = datas.pop("tag")
-            method = datas.pop("method") if "method" in datas else "insql"
-            if table_name not in self.tables:
-                await self.new_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, datas)
-                logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
+        try:
             if method == "insql":
-                await self.new_loop.run_in_executor(None, self.insql, table_name, datas)
+                await loop.run_in_executor(None, self.insql, table_name, mes)
             if method == "update":
-                values = datas["values"]
-                conditions = datas["conditions"]
-                await self.new_loop.run_in_executor(None, self.update, table_name, values, conditions)
+                values = mes["values"]
+                conditions = mes["conditions"]
+                await loop.run_in_executor(None, self.update, table_name, values, conditions)
             if method == "delete":
-                await self.new_loop.run_in_executor(None, self.delete, table_name, datas)
+                await loop.run_in_executor(None, self.delete, table_name, mes)
             if method == "select":
                 pass
-            channel.basic_ack(delivery_tag=tag.delivery_tag)
-
-        elif isinstance(datas, list):
-            tag = datas.pop()
-            channel = datas.pop()
-            for data in datas:
-                if isinstance(data, dict):
-                    table_name = data.get("table_name", self.table_name)
-                    if table_name not in self.tables:
-                        self.Mysql.create_table(self.table_name, data)
-                        logger.warning("为填写表名，默认建立以脚本名为表名的表")
-                    self.insql(table_name, conditions=data)
-                else:
-                    logger.error("返回值必须是字典类型!")
-                    raise Exception()
-
-            channel.basic_ack(delivery_tag=tag.delivery_tag)
-        else:
-            logger.error("返回值必须是字典类型!")
-            raise Exception()
-
-    def early(self):
-        """爬虫开始之前，需要运行的代码可以放在这个函数中"""
-        pass
+        except Exception:
+            traceback.print_exc()
+            os._exit(1)
 
     def before_save(self):
         try:
             while True:
                 datas = self._result_queue.get()
-                if datas:
-                    future = asyncio.run_coroutine_threadsafe(self.save(datas),
-                                                              self.new_loop)
+                mess, tasks = [], []
+                if isinstance(datas, dict):
+                    channel = datas.pop("channel")
+                    tag = datas.pop("tag")
+                    mess.append(datas)
+                elif isinstance(datas, list):
+                    tag = datas.pop()
+                    channel = datas.pop()
+                    for data in datas:
+                        if isinstance(data, dict):
+                            mess.append(data)
+                        else:
+                            logger.error("返回值必须是dict")
+                            raise Exception()
+                else:
+                    logger.error("返回值必须是dict")
+                    raise Exception()
+                channel.basic_ack(delivery_tag=tag.delivery_tag)
+                for mes in mess:
+                    table_name = mes.get("table_name", self.table_name)
+                    if "table_name" in mes.keys():
+                        table_name = mes.pop("table_name")
+                        if not table_name:
+                            table_name = self.table_name
+                    if table_name not in self.tables:
+                        self.save_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, mes)
+                        logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
+                    method = mes.pop("method") if "method" in mes else "insql"
+                    tasks.append(self.save(mes, method, table_name, self.save_loop))
+                future = self.save_loop.run_until_complete(asyncio.wait(tasks))
+                self._result_queue.task_done()
         except Exception:
             traceback.print_exc()
             os._exit(1)
+
+    def early(self):
+        """爬虫开始之前，需要运行的代码可以放在这个函数中"""
+        pass

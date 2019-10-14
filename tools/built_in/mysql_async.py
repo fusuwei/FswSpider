@@ -53,7 +53,6 @@ class MySql:
         conn.close()
 
     def select(self, tablename, keys, conditions, isdistinct=0, limit=None, order_by=None, one=False):
-        print(1234)
         sql = self.sql.get_s_sql(tablename, keys, conditions, isdistinct, limit, order_by,)
         conn, cursor = self.open()
         cursor.execute(sql)
@@ -73,7 +72,7 @@ class MySql:
         self.close(conn, cursor)
 
     def update(self, tablename, value, conditions):
-        sql = self.sql.get_u_sql( tablename, value, conditions)
+        sql = self.sql.get_u_sql(tablename, value, conditions)
         conn, cursor = self.open()
         cursor.execute(sql)
         conn.commit()
@@ -212,23 +211,43 @@ class Sql:
             tmplist.append(' ' + tmp + ' ')
         return ' and '.join(tmplist)
 
+
+from threading import Thread
 import asyncio
+import queue
 
-m = MySql.mysql_pool("test", "127.0.0.1", mysql_user="root", mysql_pwd="123456")
+def start_loop(loop):
+    """
+    再后台一直接受loop事件
+    :param loop:
+    :return:
+    """
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
 
-async def main(loop):
-    print(456)
-    ret = await loop.run_in_executor(None, m.select, "test", "*", {})
-    print(ret)
+
+async def a(loop, m, i):
+    print(i)
+    await loop.run_in_executor(None, m.insql, "test", {"status_code": i})
+    print(i, '--------------------')
 
 
-loop = asyncio.get_event_loop()
-tasks = []
-for i in range(0, 3):
-    tasks.append(main(loop))
-# 获取EventLoop:
+def b(loop, m, q):
+    while True:
+        i = q.get()
+        future = asyncio.run_coroutine_threadsafe(a(loop, m, i), loop)
 
-# 执行coroutine
-loop.run_until_complete(asyncio.wait(tasks))
-loop.close()
 
+def start():
+    m = MySql.mysql_pool("test")
+    q = queue.Queue()
+    for i in range(1000):
+        q.put(i)
+    new_loop = asyncio.get_event_loop()
+    loop_thread = Thread(target=start_loop, args=(new_loop,))
+    loop_thread.setDaemon(True)
+    loop_thread.start()
+    b(new_loop, m, q)
+    q.join()
+
+start()

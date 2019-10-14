@@ -93,17 +93,13 @@ def get_cookies(url, headless=True, executable_path=None, proxy=None):
     browser1 = webdriver.Chrome(path, chrome_options=chrome_options)
     browser1.get(new_url)
     time.sleep(1)
-    cookielist = browser1.get_cookies()
-    cookie = ""
-    for c in cookielist:
-        name = c['name']
-        value = c['value']
-        if name not in cookie:
-            cookie += (name + "=" + value + ";")
-    cookie = cookie[:-1]
+    cookieslist = browser1.get_cookies()
+    cookies = {}
+    for cook in cookieslist:
+        cookies[cook["name"]] = cook["value"]
     browser1.close()
     browser1.quit()
-    return cookie
+    return cookies
 
 
 

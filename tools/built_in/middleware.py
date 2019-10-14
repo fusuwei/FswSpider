@@ -49,17 +49,7 @@ def middleware(message, auto_headers=False, auto_cookies=False, auto_proxy=False
         else:
             cookies = message.get("cookies", tools.get_cookies(url=message["url"]))
         logger.debug("自动设置获取cookies为：%s" % cookies)
-        headers = message.get("headers", "")
-        if headers:
-            if "cookies" in headers:
-                headers["cookies"] = cookies
-            elif "Cookies" in headers:
-                headers["Cookies"] = cookies
-            else:
-                headers["Cookies"] = cookies
-            message["headers"] = headers
+        message["cookies"] = cookies
+        if proxies:
             message["proxies"] = proxies
-        else:
-            ua = get_ua()
-            message["headers"] = {"User-Agent": ua, "Cookies": cookies}
     return message

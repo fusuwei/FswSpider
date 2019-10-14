@@ -10,6 +10,10 @@ async def create_session(is_async=True, verify_ssl=True, cookies=None):
         conn = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=100)
         session = aiohttp.ClientSession(connector=conn, cookies=cookies)
     else:
+        if verify_ssl:
+            verify_ssl = False
+        else:
+            verify_ssl = True
         session = requests.Session()
         session.cookies = requests.utils.cookiejar_from_dict(cookies, cookiejar=None, overwrite=True)
         session.verify = verify_ssl
