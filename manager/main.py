@@ -40,7 +40,6 @@ class Spider:
 
         self._result_queue = Queue()
 
-
     def init(self):
         """
         初始化函数， mysql, RabbitMq 连接, 其他配置
