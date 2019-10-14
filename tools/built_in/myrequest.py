@@ -22,7 +22,8 @@ async def close(session):
 
 def close_session(session, is_async=True):
     if is_async:
-        loop = asyncio.get_event_loop()
+        import asyncio
+        loop=asyncio.get_event_loop()
         loop.run_until_complete(close(session))
         loop.close()
     else:

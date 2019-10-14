@@ -36,10 +36,10 @@ class Spider:
         self.rabbitmq_pwd = ""
         self.is_purge = False
 
-        self._session = None
         self._pre_domain_name = None
 
         self._result_queue = Queue()
+
 
     def init(self):
         """
@@ -57,6 +57,7 @@ class Spider:
         self.async_number = setting.async_number
         if not self.async_number:
             self.async_number = 1
+        self.session = None
 
         # mysql连接
         if not self.table_name:
@@ -165,7 +166,7 @@ class Spider:
         loop_thread.setDaemon(True)
         loop_thread.start()
 
-        save_data = Thread(target=self.save)
+        save_data = Thread(target=self.before_save)
         save_data.setDaemon(True)
         save_data.start()
 
@@ -190,46 +191,43 @@ class Spider:
         :param properties:
         :return:
         """
-        try:
-            logger.debug("开始请求url为：%s" % message["url"])
-            message = middleware(message, auto_proxy=self.auto_proxy, auto_cookies=self.auto_cookies,
-                                 auto_headers=self.auto_headers)
-            is_async = message.get("is_async", True)
-            verify = message.get("verify", False)
-            cookies = message.get("cookies", {})
-            url = message.get("url", '')
-            callback = message.get("callback", "parse")
-            message = self.remessage(message)
-            result = None
-            if message["domain_name"] is None:
-                if hasattr(self, callback):
-                    result = self.__getattribute__(callback)(message)
+
+        logger.debug("开始请求url为：%s" % message["url"])
+        message = middleware(message, auto_proxy=self.auto_proxy, auto_cookies=self.auto_cookies,
+                             auto_headers=self.auto_headers)
+        is_async = message.get("is_async", True)
+        verify = message.get("verify", False)
+        cookies = message.get("cookies", {})
+        url = message.get("url", '')
+        callback = message.get("callback", "parse")
+        message = self.remessage(message)
+        result = None
+        if message["domain_name"] is None:
+            if hasattr(self, callback):
+                result = self.__getattribute__(callback)(message)
+        else:
+            if self._pre_domain_name != message["domain_name"] and message["domain_name"] is not None:
+                if self.session:
+                    tools.close_session(self.session)
+                self.session = await tools.create_session(is_async, verify, cookies)
+            self._pre_domain_name = message["domain_name"]
+            res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+            if hasattr(self, callback):
+                result = self.__getattribute__(callback)(res)
+        if not result:
+            channel.basic_ack(delivery_tag=tag.delivery_tag)
+        else:
+            if isinstance(result, dict):
+                result["channel"] = channel
+                result["tag"] = tag
+                self._result_queue.put(result)
+            elif isinstance(result, list):
+                result.append(channel)
+                result.append(tag)
+                self._result_queue.put(result)
             else:
-                if self._pre_domain_name != message["domain_name"] and message["domain_name"] is not None:
-                    if self.session:
-                        tools.close_session(self.session)
-                    self.session = await tools.create_session(is_async, verify, cookies)
-                self._pre_domain_name = message["domain_name"]
-                res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
-                if hasattr(self, callback):
-                    result = self.__getattribute__(callback)(res)
-            if not result:
-                channel.basic_ack(delivery_tag=tag.delivery_tag)
-            else:
-                if isinstance(result, dict):
-                    result["channel"] = channel
-                    result["tag"] = tag
-                    self._result_queue.put(result)
-                if isinstance(result, list):
-                    result.append(channel)
-                    result.append(tag)
-                    self._result_queue.put(result)
-                else:
-                    logger.error("返回值必须是字典类型!")
-                    raise Exception()
-        except Exception:
-            traceback.print_exc()
-            os._exit(1)
+                logger.error("返回值必须是字典类型!")
+                raise Exception()
 
     def remessage(self, message):
         """
@@ -249,48 +247,65 @@ class Spider:
         :return:
         """
         message = json.loads(body)
-        asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
+        future = asyncio.run_coroutine_threadsafe(self.request(message, channel, method, properties), self.new_loop)
+        if future.exception():
+            raise future.exception()
 
-    def save(self):
+    async def save(self, datas):
         """
         存储函数，负责吧爬下的数据存到mysql数据库中
         :return:
         """
-        try:
-            while True:
-                datas = self._result_queue.get()
-                if isinstance(datas, dict):
-                    table_name = datas.get("table_name", self.table_name)
-                    channel = datas.pop("channel")
-                    tag = datas.pop("tag")
+        if isinstance(datas, dict):
+            table_name = datas.get("table_name", self.table_name)
+            channel = datas.pop("channel")
+            tag = datas.pop("tag")
+            method = datas.pop("method") if "method" in datas else "insql"
+            if table_name not in self.tables:
+                await self.new_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, datas)
+                logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
+            if method == "insql":
+                await self.new_loop.run_in_executor(None, self.insql, table_name, datas)
+            if method == "update":
+                values = datas["values"]
+                conditions = datas["conditions"]
+                await self.new_loop.run_in_executor(None, self.update, table_name, values, conditions)
+            if method == "delete":
+                await self.new_loop.run_in_executor(None, self.delete, table_name, datas)
+            if method == "select":
+                pass
+            channel.basic_ack(delivery_tag=tag.delivery_tag)
+
+        elif isinstance(datas, list):
+            tag = datas.pop()
+            channel = datas.pop()
+            for data in datas:
+                if isinstance(data, dict):
+                    table_name = data.get("table_name", self.table_name)
                     if table_name not in self.tables:
-                        self.Mysql.create_table(self.table_name, datas)
-                        logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
-                    self.insql(table_name, conditions=datas)
-                    channel.basic_ack(delivery_tag=tag.delivery_tag)
-
-                elif isinstance(datas, list):
-                    tag = datas.pop()
-                    channel = datas.pop()
-                    for data in datas:
-                        if isinstance(data, dict):
-                            table_name = data.get("table_name", self.table_name)
-                            if table_name not in self.tables:
-                                self.Mysql.create_table(self.table_name, data)
-                                logger.warning("为填写表名，默认建立以脚本名为表名的表")
-                            self.insql(table_name, conditions=data)
-                        else:
-                            logger.error("返回值必须是字典类型!")
-                            raise Exception()
-
-                    channel.basic_ack(delivery_tag=tag.delivery_tag)
+                        self.Mysql.create_table(self.table_name, data)
+                        logger.warning("为填写表名，默认建立以脚本名为表名的表")
+                    self.insql(table_name, conditions=data)
                 else:
                     logger.error("返回值必须是字典类型!")
                     raise Exception()
-        except Exception:
-            traceback.print_exc()
-            os._exit(1)
+
+            channel.basic_ack(delivery_tag=tag.delivery_tag)
+        else:
+            logger.error("返回值必须是字典类型!")
+            raise Exception()
 
     def early(self):
         """爬虫开始之前，需要运行的代码可以放在这个函数中"""
         pass
+
+    def before_save(self):
+        try:
+            while True:
+                datas = self._result_queue.get()
+                if datas:
+                    future = asyncio.run_coroutine_threadsafe(self.save(datas),
+                                                              self.new_loop)
+        except Exception:
+            traceback.print_exc()
+            os._exit(1)

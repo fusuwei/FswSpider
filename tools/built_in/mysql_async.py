@@ -53,6 +53,7 @@ class MySql:
         conn.close()
 
     def select(self, tablename, keys, conditions, isdistinct=0, limit=None, order_by=None, one=False):
+        print(1234)
         sql = self.sql.get_s_sql(tablename, keys, conditions, isdistinct, limit, order_by,)
         conn, cursor = self.open()
         cursor.execute(sql)
@@ -72,7 +73,7 @@ class MySql:
         self.close(conn, cursor)
 
     def update(self, tablename, value, conditions):
-        sql = self.sql.get_u_sql(tablename, value, conditions)
+        sql = self.sql.get_u_sql( tablename, value, conditions)
         conn, cursor = self.open()
         cursor.execute(sql)
         conn.commit()
@@ -210,3 +211,24 @@ class Sql:
             tmp = "%s='%s'" % (pymysql.escape_string(str(k)), pymysql.escape_string(str(v)))
             tmplist.append(' ' + tmp + ' ')
         return ' and '.join(tmplist)
+
+import asyncio
+
+m = MySql.mysql_pool("test", "127.0.0.1", mysql_user="root", mysql_pwd="123456")
+
+async def main(loop):
+    print(456)
+    ret = await loop.run_in_executor(None, m.select, "test", "*", {})
+    print(ret)
+
+
+loop = asyncio.get_event_loop()
+tasks = []
+for i in range(0, 3):
+    tasks.append(main(loop))
+# 获取EventLoop:
+
+# 执行coroutine
+loop.run_until_complete(asyncio.wait(tasks))
+loop.close()
+
