@@ -1,4 +1,4 @@
-
+https://www.cnblogs.com/ruhai/p/11134639.html
 launch()函数参数
 ignoreHTTPSErrors（布尔）：是否忽略HTTPS错误。默认为 False。
 headless（布尔）：是否以无头模式运行浏览器。默认为， True除非appMode或devtools选项为True。
@@ -44,3 +44,8 @@ autoClose（布尔）：脚本完成后自动关闭浏览器进程。默认为Tr
 loop（asyncio.AbstractEventLoop）：事件循环（实验性）。
 appMode （布尔）：已弃用。
 
+https://www.cnblogs.com/wupeiqi/articles/6229292.html  scrapy
+https://blog.zhangkunzhi.com/2019/05/13/pyppeteer%E5%B8%B8%E7%94%A8%E6%96%B9%E6%B3%95%E6%89%8B%E5%86%8C/index.html
+https://hacpai.com/article/1566221786951/comment/1566389299186
+https://blog.zhangkunzhi.com/2019/06/19/APP%E7%88%AC%E8%99%AB%E4%B9%8B%E6%A1%86%E6%9E%B6Airtest/index.html
+https://www.cnblogs.com/ruhai/p/11134639.html

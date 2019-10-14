@@ -76,6 +76,45 @@ def get_cookies(url, headless=True, executable_path=None, proxy=None):
     :return: 字符串cookies，需要放在headers里
     """
     new_url = re.search("(http|https)://(www.)?(\w+(\.)?)+", url).group()
+    loop = asyncio.get_event_loop()
+    cookies = loop.run_until_complete(pyppeteer_get_cookies(new_url, headless=headless,
+                                                            executable_path=executable_path,
+                                                            proxy=proxy))
+    if not cookies:
+        cookies = selenium_get_cookies(new_url, headless, executable_path, proxy)
+    return cookies
+
+
+async def pyppeteer_get_cookies(url, headless=True, executable_path=None, proxy=None):
+    dt = {
+        'headless': headless,
+        # 'devtools': True,  # 打开 chromium 的 devtools
+        'args': [
+            '--disable-extensions',  # 禁用拓展。
+            "-hide-scrollbars",  # 隐藏屏幕快照中的滚动条
+            "--disable-bundled-ppapi-flash",  # 禁用Flash
+            "--mute-audio",  # 静音
+            "--no-sandbox",  # 禁用沙盒
+            "--disable-setuid-sandbox",  # 禁用GDP
+        ],
+        "userDataDir": r"D:\userDataDir",  # 需要创建userDataDir文件夹
+    }
+    if executable_path:
+        dt["executablePath"] = executable_path
+    if proxy:
+        dt["args"].append("--proxy-server=%s"%proxy)
+    browser = await launch(dt)
+    page = await browser.newPage()
+    cookieslist = await page.cookies(url)
+    await page.close()
+    await browser.close()
+    cookies = {}
+    for cook in cookieslist:
+        cookies[cook["name"]] = cook["value"]
+    return cookies
+
+
+def selenium_get_cookies(url, headless=True, executable_path=None, proxy=None):
     chrome_options = Options()
     if headless:
         chrome_options.add_argument('--headless')
@@ -91,7 +130,7 @@ def get_cookies(url, headless=True, executable_path=None, proxy=None):
     else:
         path = setting.webdriver_path_win
     browser1 = webdriver.Chrome(path, chrome_options=chrome_options)
-    browser1.get(new_url)
+    browser1.get(url)
     time.sleep(1)
     cookieslist = browser1.get_cookies()
     cookies = {}
