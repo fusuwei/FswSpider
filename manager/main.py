@@ -105,6 +105,7 @@ class Spider:
         # 其他参数
         self._produce_count = 1
         self.selector = tools.selector
+        self.new_loop = asyncio.new_event_loop()
 
     def produce(self, message=None):
         """
@@ -161,7 +162,6 @@ class Spider:
         消费启动器， 负责把函数运行起来
         :return:
         """
-        self.new_loop = asyncio.new_event_loop()
         loop_thread = Thread(target=self.start_loop, args=(self.new_loop,))
         loop_thread.setDaemon(True)
         loop_thread.start()
@@ -211,7 +211,9 @@ class Spider:
                     tools.close_session(self.session)
                 self.session = await tools.create_session(is_async, verify, cookies)
             self._pre_domain_name = message["domain_name"]
-            res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
+            res = await tools.request(url, self.session, message, auto_proxy=self.auto_proxy, allow_code=self.allow_code,
+                                      is_async=is_async
+                                      )
             if hasattr(self, callback):
                 result = self.__getattribute__(callback)(res)
         if not result:

@@ -47,6 +47,9 @@ async def request(url, session, message=None, auto_proxy=False, allow_code=None,
             if auto_proxy and not proxies:
                 proxies = get_ip()
                 logger.debug("更换ip为：%s" % proxies)
+            if not is_async:
+                if not proxies:
+                    proxies = {}
             try:
 
                 if method.upper() == "GET":
@@ -57,7 +60,7 @@ async def request(url, session, message=None, auto_proxy=False, allow_code=None,
                             status_code = res.status
                             charset = res.charset
                     else:
-                        res = session.get(url, params=params, headers=headers, proxy=proxies, timeout=timeout,
+                        res = session.get(url, params=params, headers=headers, proxies=proxies, timeout=timeout,
                                           allow_redirects=allow_redirects)
                         content = res.content
                         status_code = res.status_code
@@ -71,7 +74,7 @@ async def request(url, session, message=None, auto_proxy=False, allow_code=None,
                             status_code = res.status
                             charset = res.charset
                     else:
-                        res = session.post(url, data=data, headers=headers, proxy=proxies, timeout=timeout,
+                        res = session.post(url, data=data, headers=headers, proxies=proxies, timeout=timeout,
                                            json=json, allow_redirects=allow_redirects)
                         content = res.content
                         status_code = res.status_code

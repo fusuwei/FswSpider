@@ -11,7 +11,7 @@ class MySpider(Spider):
 
     def start_produce(self):
         for i in ["https://www.baidu.com/s?wd=%E4%BE%8B%E5%AD%90", "https://www.baidu.com/", ]:
-            yield {"url":i}
+            yield {"url":i, "is_async":False}
 
     def parse(self, res):
         print(res.status_code)
