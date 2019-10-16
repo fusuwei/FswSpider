@@ -116,6 +116,8 @@ class Spider:
         self.Response = Response
         self.Item = Item
 
+        self._flag = False
+
     def start(self):
         if not self.debug or (self.debug and self.debug == 'm'):
             if self.is_purge:
@@ -223,6 +225,8 @@ class Spider:
         future = asyncio.run_coroutine_threadsafe(self.request(obj, channel, tag), self.new_loop)
         try:
             res = future.result()
+            if self._flag:
+                self.item.join()
         except Exception:
             traceback.print_exc()
             os._exit(1)
@@ -320,12 +324,14 @@ class Spider:
             item = self.item.get()
             try:
                 future = self.save_loop.run_until_complete(self.before_save(item))
-                res = future.result()
-                if res:
+                if future:
                     self.item.task_done()
             except Exception as e:
-                self.produce(item.request)
-                if self.item.empty():
-                    traceback.print_exc()
-                    os._exit(1)
-                continue
+                self._flag = True
+                while True:
+                    item = self.item.get()
+                    self.produce(item.request)
+                    self.item.task_done()
+                    if self.item.empty():
+                        traceback.print_exc()
+                        os._exit(1)
