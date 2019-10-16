@@ -288,49 +288,44 @@ class Spider:
         存储函数，负责吧爬下的数据存到mysql数据库中
         :return:
         """
-        try:
-            if method == "insql":
-                await loop.run_in_executor(None, self.insql, table_name, mes)
-            if method == "update":
-                values = mes["values"]
-                conditions = mes["conditions"]
-                await loop.run_in_executor(None, self.update, table_name, values, conditions)
-            if method == "delete":
-                await loop.run_in_executor(None, self.delete, table_name, mes)
-            if method == "select":
-                pass
-        except Exception:
-            traceback.print_exc()
-            os._exit(1)
+        if method == "insql":
+            await loop.run_in_executor(None, self.insql, table_name, mes)
+        if method == "update":
+            values = mes["values"]
+            conditions = mes["conditions"]
+            await loop.run_in_executor(None, self.update, table_name, values, conditions)
+        if method == "delete":
+            await loop.run_in_executor(None, self.delete, table_name, mes)
+        if method == "select":
+            pass
 
-    async def before_save(self):
-        try:
-            while True:
-                item = self.item.get()
-                if item.table_name:
-                    table_name = item.table_name
-                elif self.table_name:
-                    table_name = self.table_name
-                else:
-                    logger.error("请配置table_name!")
-                    raise Exception()
-                data = item.to_dict()
-                if table_name not in self.tables:
-                    self.save_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, data)
-                    logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
-                method = item.method
-                print("--------------------")
-                await self.save(data, method, table_name, self.save_loop)
-                self.item.task_done()
-        except Exception:
-            traceback.print_exc()
-            os._exit(1)
+    async def before_save(self, item):
+        if item.table_name:
+            table_name = item.table_name
+        elif self.table_name:
+            table_name = self.table_name
+        else:
+            logger.error("请配置table_name!")
+            raise Exception()
+        data = item.to_dict()
+        if table_name not in self.tables:
+            self.save_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, data)
+            logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
+        method = item.method
+        await self.save(data, method, table_name, self.save_loop)
+        return 1
 
     def start_save(self):
-        try:
-            for i in range(3):
-                future = self.save_loop.run_until_complete(self.before_save())
+        while True:
+            item = self.item.get()
+            try:
+                future = self.save_loop.run_until_complete(self.before_save(item))
                 res = future.result()
-        except Exception:
-            traceback.print_exc()
-            os._exit(1)
+                if res:
+                    self.item.task_done()
+            except Exception as e:
+                self.produce(item.request)
+                if self.item.empty():
+                    traceback.print_exc()
+                    os._exit(1)
+                continue
