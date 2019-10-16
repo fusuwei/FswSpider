@@ -81,7 +81,7 @@ class RabbitMq:
         self.channel.basic_publish(exchange='', routing_key=self.name, body=body,
                                    properties=pika.BasicProperties(delivery_mode=2, priority=priority))
 
-    def consume(self, callback=None, limit=1, item_queue=None):
+    def consume(self, callback=None, limit=1):
         self.queue_declare()
         self.channel.basic_qos(prefetch_count=limit)
         self.channel.basic_consume(queue=self.name, on_message_callback=callback, auto_ack=False)
@@ -98,7 +98,7 @@ class RabbitMq:
                 consu.join(30)
                 if self.is_empty(name=self.name, rabbitmq_host=setting.rabbitmq_host,
                                      rabbitmq_user=setting.rabbitmq_user, rabbitmq_pwd=setting.rabbitmq_pwd, ) == 0:
-                    item_queue.join()
+                    self.del_queue(self.name)
                     break
         except Exception as e:
             logger.error(consu.exc_traceback)

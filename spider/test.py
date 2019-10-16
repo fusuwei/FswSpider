@@ -17,7 +17,7 @@ class MySpider(manager.Spider):
 
     def parse(self, res):
         print(res.status_code)
-        return [self.Item(status_code=res.status_code+i) for i in range(100)]
+        return [self.Item(status_code=res.status_code+i) for i in range(1)]
 
 
 if __name__ == '__main__':

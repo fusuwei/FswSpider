@@ -1,7 +1,7 @@
 import aiohttp
 import requests
 from tools import log
-from tools.proxy import get_ip
+from tools.proxy import get_ip, ip_process
 logger = log(__name__)
 
 
@@ -27,7 +27,7 @@ async def close_session(session, is_async=True):
         session.close()
 
 
-async def request(session, obj, Response, auto_proxy=False, allow_code=None, is_async=True):
+async def requesting(session, obj, Response, allow_code=None, is_async=True):
     method = obj.method
     try:
         if method.upper() == "GET":
@@ -72,7 +72,53 @@ async def request(session, obj, Response, auto_proxy=False, allow_code=None, is_
             cookies = res.cookies
             headers = res.headers
             return Response(url=obj.url, content=content, status_code=status_code, charset=charset, cookies=cookies,
-                            headers=headers, callback=obj.callback, proxies=obj.proxies, method=method, request=obj)
+                            headers=headers, callback=obj.callback, proxies=obj.proxies, method=method)
         else:
             logger.error("第%d次请求！状态码为%s" % (abs(obj.max_times-3), status_code))
             return obj
+
+
+async def request(spider, obj, channel, tag):
+    """
+            请求函数，
+            :param message: list 爬虫信息
+            :param channel:
+            :param tag:
+            :param properties:
+            :return:
+            """
+    res = None
+    while obj.max_times:
+        obj.max_times -= 1
+        callback = getattr(spider, obj.callback)
+        spider.is_async = obj.is_async
+        if hasattr(obj, "err"):
+            err = getattr(obj, "err")
+        if spider.auto_cookies and not spider.cookies:
+            obj.auto_cookies(spider.auto_proxy)
+            spider.cookies = obj.cookies
+        if spider.auto_headers:
+            obj.auto_headers()
+        if spider.auto_proxy:
+            obj.auto_proxy()
+        logger.debug("开始请求url为：%s" % obj.url)
+        obj = spider.remessage(obj)
+        if obj.proxies:
+            obj.proxies = ip_process(obj.proxies, obj.is_async)
+        if not obj.domain_name:
+            ret = callback(obj)
+            return ret
+        else:
+            if spider._pre_domain_name != obj.domain_name and obj.domain_name is not None:
+                if spider.session:
+                    await close_session(session=spider.session)
+                spider.session = await create_session(obj.is_async, obj.verify, obj.cookies)
+            spider._pre_domain_name = obj.domain_name
+            res = await requesting(spider.session, obj, spider.Response, allow_code=spider.allow_code)
+            if isinstance(res, spider.Request):
+                continue
+            else:
+                ret = callback(res)
+                return ret
+    spider.produce(res)
+    channel.basic_ack(delivery_tag=tag)

@@ -210,3 +210,19 @@ class Sql:
             tmp = "%s='%s'" % (pymysql.escape_string(str(k)), pymysql.escape_string(str(v)))
             tmplist.append(' ' + tmp + ' ')
         return ' and '.join(tmplist)
+
+async def save(mysql, mes, method, table_name, loop):
+    """
+    存储函数，负责吧爬下的数据存到mysql数据库中
+    :return:
+    """
+    if method == "insql":
+        await loop.run_in_executor(None, mysql.insql, table_name, mes)
+    if method == "update":
+        values = mes["values"]
+        conditions = mes["conditions"]
+        await loop.run_in_executor(None, mysql.update, table_name, values, conditions)
+    if method == "delete":
+        await loop.run_in_executor(None, mysql.delete, table_name, mes)
+    if method == "select":
+        pass

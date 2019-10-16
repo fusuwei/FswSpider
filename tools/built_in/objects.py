@@ -1,3 +1,4 @@
+import chardet
 from typing import *
 import re
 from tools.toolslib import get_cookies
@@ -5,6 +6,60 @@ from tools.proxy import get_ip, ip_process
 from tools.user_agents import get_ua
 from tools import log
 logger = log(__name__)
+
+
+class Response:
+    def __init__(self, url, content=None, status_code=None, charset=None, cookies=None, method=None,
+                 headers=None, callback="parse", proxies=None, error=None):
+        self.url = url
+        self.content = content
+        self.status_code = status_code
+        self.charset = charset
+        self.cookies = cookies
+        self.method = method
+        self.headers = headers
+        self.callback = callback
+        self.proxies = proxies
+        self.error = error
+        self.text = self._parse_content(charset, content)
+
+    def _parse_content(self, charset, content):
+        if not content:
+            return
+        if charset:
+            try:
+                text = content.decode(charset)
+            except UnicodeDecodeError:
+                try:
+                    char = chardet.detect(content)
+                    if char:
+                        text = content.decode(char)
+                    else:
+                        raise UnicodeDecodeError
+                except UnicodeDecodeError:
+                    try:
+                        text = content.decode('utf-8')
+                    except UnicodeDecodeError:
+                        try:
+                            text = content.decode("GBK")
+                        except UnicodeDecodeError:
+                            text = content.decode('utf-8', "ignore")
+        else:
+            try:
+                text = content.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    char = chardet.detect(content)
+                    if char:
+                        text = content.decode(char)
+                    else:
+                        raise UnicodeDecodeError
+                except UnicodeDecodeError:
+                    try:
+                        text = content.decode('gb2312')
+                    except UnicodeDecodeError:
+                        text = content.decode('utf-8', "ignore")
+        return text
 
 
 class Request:
@@ -84,3 +139,22 @@ class Request:
     @property
     def domain_name(self):
         return re.search("(http|https)://(www.)?(\w+(\.)?)+", self.url).group()
+
+
+class Item:
+    def __init__(self, table_name=None, method="insql", request=None, **kwargs):
+        self._kwargs = kwargs
+        self.table_name = table_name
+        self.method = method
+        self.request = request
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
+
+    def to_dict(self,):
+        dic = {}
+        for key in self.__dict__.keys():
+            if self.__dict__[key]:
+                if key not in ["table_name", "method", "request", "_kwargs"]:
+                    dic[key] = self.__dict__[key]
+        return dic
+

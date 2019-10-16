@@ -1,9 +1,7 @@
 from tools import *
-from tools.proxy import ip_process
 from queue import Queue
 from inspect import isgeneratorfunction
 from threading import Thread
-from concurrent.futures import Future
 import time
 import abc
 import asyncio
@@ -204,9 +202,9 @@ class Spider:
         # heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
         # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         # heartbeat.startheartbeat()  # 开启心跳保护
-        self.Rabbit.consume(callback=self.callback, limit=self.async_number, item_queue=self.item)
+        self.Rabbit.consume(callback=self.callback, limit=self.async_number)
         print("---------------------------------------")
-        self.Rabbit.del_queue(self.spider_name)
+        self.item.join()
         print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         print("运行完..")
 
@@ -222,7 +220,7 @@ class Spider:
         message = json.loads(body)
         tag = method.delivery_tag
         obj = Request(**message)
-        future = asyncio.run_coroutine_threadsafe(self.request(obj, channel, tag), self.new_loop)
+        future = asyncio.run_coroutine_threadsafe(request(self, obj, channel, tag), self.new_loop)
         try:
             res = future.result()
             if self._flag:
@@ -234,51 +232,6 @@ class Spider:
             self.dispatch(res, obj)
             channel.basic_ack(delivery_tag=tag)
 
-    async def request(self, obj, channel, tag):
-        """
-        请求函数，
-        :param message: list 爬虫信息
-        :param channel:
-        :param tag:
-        :param properties:
-        :return:
-        """
-        res = None
-        while obj.max_times:
-            obj.max_times -= 1
-            callback = self.__getattribute__(obj.callback)
-            self.is_async = obj.is_async
-            if hasattr(obj, "err"):
-                err = getattr(obj, "err")
-            if self.auto_cookies and not self.cookies:
-                obj.auto_cookies(self.auto_proxy)
-                self.cookies = obj.cookies
-            if self.auto_headers:
-                obj.auto_headers()
-            if self.auto_proxy:
-                obj.auto_proxy()
-            logger.debug("开始请求url为：%s" % obj.url)
-            obj = self.remessage(obj)
-            if obj.proxies:
-                obj.proxies = ip_process(obj.proxies, obj.is_async)
-            if not obj.domain_name:
-                ret = callback(obj)
-                return ret
-            else:
-                if self._pre_domain_name != obj.domain_name and obj.domain_name is not None:
-                    if self.session:
-                        await close_session(session=self.session)
-                    self.session = await create_session(obj.is_async, obj.verify, obj.cookies)
-                self._pre_domain_name = obj.domain_name
-                res = await request(self.session, obj, self.Response, auto_proxy=self.auto_proxy, allow_code=self.allow_code)
-                if isinstance(res, self.Request):
-                    continue
-                else:
-                    ret = callback(res)
-                    return ret
-        self.produce(res)
-        channel.basic_ack(delivery_tag=tag)
-
     def remessage(self, message):
             """
             low版中间件
@@ -287,51 +240,38 @@ class Spider:
             """
             return message
 
-    async def save(self, mes, method, table_name, loop):
-        """
-        存储函数，负责吧爬下的数据存到mysql数据库中
-        :return:
-        """
-        if method == "insql":
-            await loop.run_in_executor(None, self.insql, table_name, mes)
-        if method == "update":
-            values = mes["values"]
-            conditions = mes["conditions"]
-            await loop.run_in_executor(None, self.update, table_name, values, conditions)
-        if method == "delete":
-            await loop.run_in_executor(None, self.delete, table_name, mes)
-        if method == "select":
-            pass
-
-    async def before_save(self, item):
-        if item.table_name:
-            table_name = item.table_name
-        elif self.table_name:
-            table_name = self.table_name
-        else:
-            logger.error("请配置table_name!")
-            raise Exception()
-        data = item.to_dict()
-        if table_name not in self.tables:
-            self.save_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, data)
-            logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
-        method = item.method
-        await self.save(data, method, table_name, self.save_loop)
-        return 1
+    async def before_save(self):
+        try:
+            while True:
+                item = self.item.get()
+                if item.table_name:
+                    table_name = item.table_name
+                elif self.table_name:
+                    table_name = self.table_name
+                else:
+                    logger.error("请配置table_name!")
+                    raise Exception()
+                data = item.to_dict()
+                if table_name not in self.tables:
+                    self.save_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, data)
+                    logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
+                method = item.method
+                ret = await save(self.Mysql, data, method, table_name, self.save_loop)
+                self.item.task_done()
+                return ret
+        except Exception as e:
+            self._flag = True
+            while True:
+                item = self.item.get()
+                self.produce(item.request)
+                self.item.task_done()
+                if self.item.empty():
+                    traceback.print_exc()
+                    os._exit(1)
 
     def start_save(self):
-        while True:
-            item = self.item.get()
-            try:
-                future = self.save_loop.run_until_complete(self.before_save(item))
-                if future:
-                    self.item.task_done()
-            except Exception as e:
-                self._flag = True
-                while True:
-                    item = self.item.get()
-                    self.produce(item.request)
-                    self.item.task_done()
-                    if self.item.empty():
-                        traceback.print_exc()
-                        os._exit(1)
+        tasks = []
+        for i in range(3):
+            tasks.append(self.before_save())
+        ret = self.save_loop.run_until_complete(asyncio.wait(tasks))
+        print()

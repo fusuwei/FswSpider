@@ -3,20 +3,13 @@ import re
 from importlib import import_module
 
 
-def runner(path=None, function=None, spider_name=None, async_number=None):
+def runner(path=None,):
 
-    if async_number:
-        setting.async_number = async_number
-    if function:
-        setting.function = function
-    if spider_name:
+    if path:
+        spider_name = re.search("([0-9a-zA-Z]+)\.py", path).group(1)
         setting.spider_name = spider_name
     else:
-        if path:
-            spider_name = re.search("([0-9a-zA-Z]+)\.py", path).group(1)
-            setting.spider_name = spider_name
-        else:
-            raise ValueError("必须指定路径！")
+        raise ValueError("必须指定路径！")
 
     if path and path.endswith(".py"):
         path = path.replace("\\", '/')
