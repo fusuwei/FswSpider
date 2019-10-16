@@ -3,7 +3,7 @@ import re
 from importlib import import_module
 
 
-def run(path=None, function=None, spider_name=None, async_number=None):
+def runner(path=None, function=None, spider_name=None, async_number=None):
 
     if async_number:
         setting.async_number = async_number
@@ -27,11 +27,8 @@ def run(path=None, function=None, spider_name=None, async_number=None):
         spider.init()
         if hasattr(spider, "early"):
             spider.early()
-        if function == "m":
-            spider.produce()
-        elif function == "w":
-            spider.start_consume()
+        spider.start()
 
 
 if __name__ == '__main__':
-    run("text.py")
+    runner("text.py")

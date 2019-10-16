@@ -16,6 +16,8 @@ from pyppeteer import launch
 def get_md5(url):
     if isinstance(url, list) or isinstance(url, tuple):
         url = ''.join([str(u) if u else '' for u in url])
+    if isinstance(url, dict):
+        url = ''.join([str(u) if u else '' for u in url.values()])
     m = hashlib.md5()
     if isinstance(url, str):
         url = url.encode('utf-8')
@@ -41,6 +43,7 @@ def selector(res, encode=None):
         else:
             resp = Selector(res.text)
     return resp
+
 
 class ExceptErrorThread(threading.Thread):
     def __init__(self, funcName, *args):
@@ -139,8 +142,6 @@ def selenium_get_cookies(url, headless=True, executable_path=None, proxy=None):
     browser1.close()
     browser1.quit()
     return cookies
-
-
 
 
 if __name__ == '__main__':

@@ -1,1 +1,1 @@
-from manager.main import Spider
+from manager.manager import Spider

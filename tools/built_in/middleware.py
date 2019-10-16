@@ -53,3 +53,38 @@ def middleware(message, auto_headers=False, auto_cookies=False, auto_proxy=False
         if proxies:
             message["proxies"] = proxies
     return message
+
+# def a(func):
+#     def b():
+#         print("---------------------")
+#         return func()
+#     return b
+# import abc
+#
+# class B:
+#
+#
+#     @abc.abstractmethod
+#     def c(self):
+#         pass
+#
+# class D(B):
+#     pass
+#     # def c(self):
+#     #     print(1)
+#
+#
+# from abc import abstractmethod, ABCMeta
+#
+#
+# class Foo(metaclass=ABCMeta):
+#     @abstractmethod
+#     def exec(self):
+#         pass
+#
+#
+# class A(Foo):
+#     pass
+#
+#
+# obj = A()
