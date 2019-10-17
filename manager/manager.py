@@ -196,9 +196,16 @@ class Spider:
         message = json.loads(body)
         tag = method.delivery_tag
         obj = Request(**message)
-        future = asyncio.run_coroutine_threadsafe(request(self, obj, channel, tag), self.new_loop)
+        if obj.count > 3:
+            obj.count += 1
+            self.dispatch(obj, obj)
+            channel.basic_ack(delivery_tag=tag)
+        else:
+            asyncio.run_coroutine_threadsafe(self.before_deal(obj, channel, tag), self.new_loop)
+
+    async def before_deal(self, obj, channel, tag):
         try:
-            res = future.result()
+            res = await request(self, obj, channel, tag)
             if self._flag:
                 self.item.join()
         except Exception:

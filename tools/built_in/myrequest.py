@@ -114,11 +114,12 @@ async def request(spider, obj, channel, tag):
                     await close_session(session=spider.session)
                 spider.session = await create_session(obj.is_async, obj.verify, obj.cookies)
             spider._pre_domain_name = obj.domain_name
+            print("开始请求：", obj.url)
             res = await requesting(spider.session, obj, spider.Response, allow_code=spider.allow_code)
             if isinstance(res, spider.Request):
                 continue
             else:
                 ret = callback(res)
                 return ret
-    spider.produce(res)
-    channel.basic_ack(delivery_tag=tag)
+    res.count += 1
+    return res

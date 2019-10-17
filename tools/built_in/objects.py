@@ -67,7 +67,7 @@ class Request:
                  data: Union[dict, None] = None, params: Union[dict, None] = None, json: Union[dict, None] = None,
                  headers: Union[dict, None] = None, proxies: str = None, timeout: Union[int, float] = 3,
                  max_times: int = 3, cookies: Union[dict, None] = None, verify: bool = False,
-                 is_async: bool = True,  allow_redirects=False,):
+                 is_async: bool = True,  allow_redirects=False, count=0):
         self.url = url
         self.method = method
         self.headers = headers
@@ -82,7 +82,7 @@ class Request:
         self.verify = verify
         self.is_async = is_async
         self.allow_redirects = allow_redirects
-        self.count = 0
+        self.count = count
 
     def to_dict(self):
         dic = {}
@@ -95,7 +95,7 @@ class Request:
         dic = {}
         for key in self.__dict__.keys():
             if self.__dict__[key]:
-                if key in ["url", "method", "callback", "data", "json", "params", "callback"]:
+                if key in ["url", "method", "callback", "data", "json", "params", "callback", "count"]:
                     dic[key] = self.__dict__[key]
         return dic
 

@@ -12,7 +12,7 @@ class MySpider(manager.Spider):
         self.debug = False
 
     def start_produce(self):
-        for i in ["https://www.baidu.com/s?wd=%E4%BE%8B%E5%AD%90", "https://www.baidu.com/", "https://fanyi.baidu.com/"]:
+        for i in ["https://www.google.com/"]:
             yield self.Request(url=i,)
 
     def parse(self, res):

@@ -212,3 +212,38 @@ import threading
 # url = '123'
 # req = type("Request", (), {"url": url})
 # print()
+# import asyncio
+#
+#
+# async def da():
+#     return 1
+#
+# async def a():
+#     print("----------------")
+#     d = await da()
+#     print(d)
+#     await asyncio.sleep(10)
+#     print('==================')
+#
+# loop = asyncio.get_event_loop()
+# tasks = []
+# for i in range(10):
+#     tasks.append(a())
+#
+# loop.run_until_complete(asyncio.wait(tasks))
+
+import aiohttp, asyncio
+
+
+async def get():
+    session = aiohttp.ClientSession()
+    return session
+
+loop = asyncio.get_event_loop()
+session = loop.run_until_complete(get())
+tasks = []
+for i in ['http://www.baidu.com', 'http://www.baidu.com/s?wd=hello', 'http://www.baidu.com/s?wd=xixi']:
+    tasks.append((session.get(i)))
+print(loop.run_until_complete(asyncio.wait(tasks)))
+loop.run_until_complete(session.close())
+loop.close()
