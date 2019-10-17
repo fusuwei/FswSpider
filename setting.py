@@ -22,8 +22,9 @@ mysql_user = "root"
 mysql_pwd = "fsw.1996"
 mysql_port = 3306
 
+# 中间件
 MIDDLEWARES = {
-    'tools.middleware.DefaultMiddleware': 543,
+    # 'tools.middleware.DefaultMiddleware': 543,
     # 'tools.middleware.DefaultMiddleware': 543,
 }
 

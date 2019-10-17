@@ -10,7 +10,7 @@ logger = log(__name__)
 
 class Response:
     def __init__(self, url, content=None, status_code=None, charset=None, cookies=None, method=None,
-                 headers=None, callback="parse", proxies=None, error=None):
+                 headers=None, callback="parse", proxies=None, error=None, meta=None):
         self.url = url
         self.content = content
         self.status_code = status_code
@@ -21,6 +21,7 @@ class Response:
         self.callback = callback
         self.proxies = proxies
         self.error = error
+        self.meta = meta
         self.text = self._parse_content(charset, content)
 
     def _parse_content(self, charset, content):
@@ -67,7 +68,7 @@ class Request:
                  data: Union[dict, None] = None, params: Union[dict, None] = None, json: Union[dict, None] = None,
                  headers: Union[dict, None] = None, proxies: str = None, timeout: Union[int, float] = 3,
                  max_times: int = 3, cookies: Union[dict, None] = None, verify: bool = False,
-                 is_async: bool = True,  allow_redirects=False, count=0):
+                 is_async: bool = True,  allow_redirects=False, count=0, meta=None):
         self.url = url
         self.method = method
         self.headers = headers
@@ -83,6 +84,7 @@ class Request:
         self.is_async = is_async
         self.allow_redirects = allow_redirects
         self.count = count
+        self.meta = meta
 
     def to_dict(self):
         dic = {}
@@ -95,7 +97,7 @@ class Request:
         dic = {}
         for key in self.__dict__.keys():
             if self.__dict__[key]:
-                if key in ["url", "method", "callback", "data", "json", "params", "callback", "count"]:
+                if key in ["url", "method", "callback", "data", "json", "params", "callback", "count", "meta"]:
                     dic[key] = self.__dict__[key]
         return dic
 

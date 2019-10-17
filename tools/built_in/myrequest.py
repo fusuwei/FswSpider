@@ -4,6 +4,10 @@ import setting
 from tools import log
 from tools.proxy import ip_process
 from importlib import import_module
+try:
+    from tools.middleware import DefaultMiddleware
+except Exception:
+    pass
 logger = log(__name__)
 
 
@@ -15,18 +19,23 @@ def import_libs():
         for k, v in middleware_dict.items():
             if maxv < v:
                 maxk, maxv = k, v
-        path, pack = maxk.rsplit(".", maxsplit=1)
-        Middleware = import_module(path)
-        Middleware = getattr(Middleware, pack)()
+        if maxv and maxk:
+            path, pack = maxk.rsplit(".", maxsplit=1)
+            Middleware = import_module(path)
+            Middleware = getattr(Middleware, pack)()
     return Middleware
 
 
-def midd(func, ):
-    def inner(spider, request,):
+def middleware(func, ):
+    def inner(spider, request, *args, **kwargs):
         Middleware = import_libs()
         if Middleware:
+            try:
+                DefaultMiddleware().process_request(request, spider)
+            except Exception:
+                pass
             Middleware.process_request(request, spider)
-        return func(spider, request,)
+        return func(spider, request, *args, **kwargs)
     return inner
 
 
@@ -51,9 +60,17 @@ async def close_session(session, is_async=True):
     else:
         session.close()
 
-
-async def requesting(session, request, Response, allow_code=None, is_async=True, timeout=10, max_times=3):
+@middleware
+async def requesting(spider, request, max_times=3):
     method = request.method
+    session = spider.session
+    is_async = spider.is_async
+    Response = spider.Response
+    allow_code = spider.allow_code
+    if spider.timeout:
+        timeout = spider.timeout
+    else:
+        timeout = request.timeout
     try:
         if method.upper() == "GET":
             if is_async:
@@ -83,7 +100,7 @@ async def requesting(session, request, Response, allow_code=None, is_async=True,
             else:
                 res = session.post(request.url, data=request.data, headers=request.headers, proxies=request.proxies,
                                    timeout=timeout, cookies=request.cookies,
-                                   json=request.json, allow_redirects=request.allow_redirects)
+                                   json=request.json, allow_redirects=request.allow_redirects, )
                 content = res.content
                 status_code = res.status_code
                 charset = res.encoding
@@ -99,12 +116,13 @@ async def requesting(session, request, Response, allow_code=None, is_async=True,
             cookies = res.cookies
             headers = res.headers
             return Response(url=request.url, content=content, status_code=status_code, charset=charset, cookies=cookies,
-                            headers=headers, callback=request.callback, proxies=request.proxies, method=method)
+                            headers=headers, callback=request.callback, proxies=request.proxies, method=method,
+                            meta=request.meta)
         else:
             logger.error("第%d次请求！状态码为%s" % (abs(max_times-3), status_code))
             return request
 
-@midd
+
 async def request(spider, request,):
     """
             请求函数，
@@ -119,17 +137,13 @@ async def request(spider, request,):
         max_times = spider.max_times
     else:
         max_times = request.max_times
-    if spider.timeout:
-        timeout = spider.timeout
-    else:
-        timeout = request.timeout
     while max_times:
         max_times -= 1
         callback = getattr(spider, request.callback)
         spider.is_async = request.is_async
         logger.debug("开始请求url为：%s" % request.url)
         if request.proxies:
-            request.proxies = ip_process(request.proxies, request.is_async)
+            request.proxies = ip_process(request.proxies, spider.is_async)
         if not request.domain_name:
             ret = callback(request)
             return ret
@@ -140,8 +154,7 @@ async def request(spider, request,):
                 spider.session = await create_session(spider.is_async, request.verify, spider.cookies)
             spider._pre_domain_name = request.domain_name
             print("开始请求：", request.url)
-            res = await requesting(spider.session, request, spider.Response, allow_code=spider.allow_code,
-                                   timeout=timeout, max_times=max_times)
+            res = await requesting(spider, request, max_times=max_times)
             if isinstance(res, spider.Request):
                 continue
             else:

@@ -4,7 +4,6 @@ from tools.toolslib import get_cookies
 
 
 class DefaultMiddleware:
-
     def process_request(self, request, spider):
         if spider.auto_headers:
             request.headers["User-Agent"] = get_ua()
