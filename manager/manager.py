@@ -41,6 +41,7 @@ class Spider:
         self.is_purge = False
 
         self._pre_domain_name = None
+        self._count_ = set()
 
     def init(self, spider_name=None):
         """
@@ -196,7 +197,12 @@ class Spider:
         message = json.loads(body)
         tag = method.delivery_tag
         obj = Request(**message)
-        if obj.count > 3:
+        if obj.count >= 3:
+            if obj.count == 3:
+                self._count_.add(get_md5(obj.to_publish()))
+            if len(self._count_) == self.Rabbit.is_empty(self.spider_name, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd):
+                logger.error("队列请求全部报错！")
+                os._exit(1)
             obj.count += 1
             self.dispatch(obj, obj)
             channel.basic_ack(delivery_tag=tag)
