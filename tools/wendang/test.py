@@ -232,18 +232,16 @@ import threading
 #
 # loop.run_until_complete(asyncio.wait(tasks))
 
-import aiohttp, asyncio
+def midd(func):
+    def inner(d, b, *args, **kwargs):
+        a(d, b)
+        return func(*args, **kwargs)
+    return inner
 
+def a(d, b):
+    print(d, b)
 
-async def get():
-    session = aiohttp.ClientSession()
-    return session
-
-loop = asyncio.get_event_loop()
-session = loop.run_until_complete(get())
-tasks = []
-for i in ['http://www.baidu.com', 'http://www.baidu.com/s?wd=hello', 'http://www.baidu.com/s?wd=xixi']:
-    tasks.append((session.get(i)))
-print(loop.run_until_complete(asyncio.wait(tasks)))
-loop.run_until_complete(session.close())
-loop.close()
+@midd
+def c():
+    print("-----")
+c(1, 2)

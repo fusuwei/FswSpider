@@ -18,11 +18,13 @@ class Spider:
         # 爬虫脚本配置
         self.auto_proxy = False
         self.auto_cookies = False
-        self.auto_headers = True
+        self.auto_headers = False
         self.allow_code = []
         self._url_md5 = set()
         self.is_async = True
         self.cookies = None
+        self.max_times = 3
+        self.timeout = 10
         self.session = None
         self.debug = False
 
@@ -211,7 +213,7 @@ class Spider:
 
     async def before_deal(self, obj, channel, tag):
         try:
-            res = await request(self, obj, channel, tag)
+            res = await request(self, obj)
             if self._flag:
                 self.item.join()
         except Exception:

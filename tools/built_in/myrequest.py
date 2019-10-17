@@ -1,8 +1,33 @@
 import aiohttp
 import requests
+import setting
 from tools import log
-from tools.proxy import get_ip, ip_process
+from tools.proxy import ip_process
+from importlib import import_module
 logger = log(__name__)
+
+
+def import_libs():
+    Middleware = None
+    if hasattr(setting, "MIDDLEWARES"):
+        middleware_dict = getattr(setting, "MIDDLEWARES")
+        maxk, maxv = None, 0
+        for k, v in middleware_dict.items():
+            if maxv < v:
+                maxk, maxv = k, v
+        path, pack = maxk.rsplit(".", maxsplit=1)
+        Middleware = import_module(path)
+        Middleware = getattr(Middleware, pack)()
+    return Middleware
+
+
+def midd(func, ):
+    def inner(spider, request,):
+        Middleware = import_libs()
+        if Middleware:
+            Middleware.process_request(request, spider)
+        return func(spider, request,)
+    return inner
 
 
 async def create_session(is_async=True, verify_ssl=True, cookies=None):
@@ -27,36 +52,38 @@ async def close_session(session, is_async=True):
         session.close()
 
 
-async def requesting(session, obj, Response, allow_code=None, is_async=True):
-    method = obj.method
+async def requesting(session, request, Response, allow_code=None, is_async=True, timeout=10, max_times=3):
+    method = request.method
     try:
         if method.upper() == "GET":
             if is_async:
-                async with session.get(url=obj.url, params=obj.params, headers=obj.headers, proxy=obj.proxies,
-                                       timeout=obj.timeout, allow_redirects=obj.allow_redirects) as res:
+                async with session.get(url=request.url, params=request.params, headers=request.headers,
+                                       proxy=request.proxies, cookies=request.cookies,
+                                       timeout=timeout, allow_redirects=request.allow_redirects) as res:
                     content = await res.read()
                     status_code = res.status
                     charset = res.charset
             else:
-                res = session.get(obj.url, params=obj.params, headers=obj.headers, proxies=obj.proxies,
-                                  timeout=obj.timeout,
-                                  allow_redirects=obj.allow_redirects)
+                res = session.get(request.url, params=request.params, headers=request.headers,
+                                  proxies=request.proxies, cookies=request.cookies,
+                                  timeout=timeout,
+                                  allow_redirects=request.allow_redirects)
                 content = res.content
                 status_code = res.status_code
                 charset = res.encoding
 
         elif method.upper() == 'POST':
             if is_async:
-                async with session.post(obj.url, data=obj.data, headers=obj.headers, proxy=obj.proxies,
-                                        timeout=obj.timeout,
-                                        allow_redirects=obj.allow_redirects, json=obj.json) as res:
+                async with session.post(request.url, data=request.data, headers=request.headers, proxy=request.proxies,
+                                        timeout=timeout, cookies=request.cookies,
+                                        allow_redirects=request.allow_redirects, json=request.json) as res:
                     content = await res.read()
                     status_code = res.status
                     charset = res.charset
             else:
-                res = session.post(obj.url, data=obj.data, headers=obj.headers, proxies=obj.proxies,
-                                   timeout=obj.timeout,
-                                   json=obj.json, allow_redirects=obj.allow_redirects)
+                res = session.post(request.url, data=request.data, headers=request.headers, proxies=request.proxies,
+                                   timeout=timeout, cookies=request.cookies,
+                                   json=request.json, allow_redirects=request.allow_redirects)
                 content = res.content
                 status_code = res.status_code
                 charset = res.encoding
@@ -65,20 +92,20 @@ async def requesting(session, obj, Response, allow_code=None, is_async=True):
 
     except Exception as e:
         logger.error("请求失败，未返回Response")
-        obj.err = e
-        return obj
+        request.err = e
+        return request
     else:
         if (status_code == 200 and content is not None) or status_code in allow_code:
             cookies = res.cookies
             headers = res.headers
-            return Response(url=obj.url, content=content, status_code=status_code, charset=charset, cookies=cookies,
-                            headers=headers, callback=obj.callback, proxies=obj.proxies, method=method)
+            return Response(url=request.url, content=content, status_code=status_code, charset=charset, cookies=cookies,
+                            headers=headers, callback=request.callback, proxies=request.proxies, method=method)
         else:
-            logger.error("第%d次请求！状态码为%s" % (abs(obj.max_times-3), status_code))
-            return obj
+            logger.error("第%d次请求！状态码为%s" % (abs(max_times-3), status_code))
+            return request
 
-
-async def request(spider, obj, channel, tag):
+@midd
+async def request(spider, request,):
     """
             请求函数，
             :param message: list 爬虫信息
@@ -88,34 +115,33 @@ async def request(spider, obj, channel, tag):
             :return:
             """
     res = None
-    while obj.max_times:
-        obj.max_times -= 1
-        callback = getattr(spider, obj.callback)
-        spider.is_async = obj.is_async
-        if hasattr(obj, "err"):
-            err = getattr(obj, "err")
-        if spider.auto_cookies and not spider.cookies:
-            obj.auto_cookies(spider.auto_proxy)
-            spider.cookies = obj.cookies
-        if spider.auto_headers:
-            obj.auto_headers()
-        if spider.auto_proxy:
-            obj.auto_proxy()
-        logger.debug("开始请求url为：%s" % obj.url)
-        obj = spider.remessage(obj)
-        if obj.proxies:
-            obj.proxies = ip_process(obj.proxies, obj.is_async)
-        if not obj.domain_name:
-            ret = callback(obj)
+    if spider.max_times:
+        max_times = spider.max_times
+    else:
+        max_times = request.max_times
+    if spider.timeout:
+        timeout = spider.timeout
+    else:
+        timeout = request.timeout
+    while max_times:
+        max_times -= 1
+        callback = getattr(spider, request.callback)
+        spider.is_async = request.is_async
+        logger.debug("开始请求url为：%s" % request.url)
+        if request.proxies:
+            request.proxies = ip_process(request.proxies, request.is_async)
+        if not request.domain_name:
+            ret = callback(request)
             return ret
         else:
-            if spider._pre_domain_name != obj.domain_name and obj.domain_name is not None:
+            if spider._pre_domain_name != request.domain_name and request.domain_name is not None:
                 if spider.session:
                     await close_session(session=spider.session)
-                spider.session = await create_session(obj.is_async, obj.verify, obj.cookies)
-            spider._pre_domain_name = obj.domain_name
-            print("开始请求：", obj.url)
-            res = await requesting(spider.session, obj, spider.Response, allow_code=spider.allow_code)
+                spider.session = await create_session(spider.is_async, request.verify, spider.cookies)
+            spider._pre_domain_name = request.domain_name
+            print("开始请求：", request.url)
+            res = await requesting(spider.session, request, spider.Response, allow_code=spider.allow_code,
+                                   timeout=timeout, max_times=max_times)
             if isinstance(res, spider.Request):
                 continue
             else:
@@ -123,3 +149,5 @@ async def request(spider, obj, channel, tag):
                 return ret
     res.count += 1
     return res
+
+
