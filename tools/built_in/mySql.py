@@ -214,7 +214,7 @@ class Sql:
         return ' and '.join(tmplist)
 
 
-def connecting(dbname, mysql_host, mysql_user, mysql_pwd, mysql_port):
+def connecting(dbname, mysql_host, mysql_user, mysql_pwd, mysql_port=3306):
     if dbname:
         if mysql_host:
             setting.mysql_host = mysql_host

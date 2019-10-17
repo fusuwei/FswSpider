@@ -35,6 +35,7 @@ class Spider:
         self.mysql_port = None
         self.dbname = None
         self.table_name = None
+        self.mysqlconnecting = mysqlconnecting
 
         # RabbitMq配置
         self.rabbitmq_host = None
