@@ -1,5 +1,5 @@
 from manager import manager
-from manager.runner import runner
+from manager.runner import run
 
 
 class MySpider(manager.Spider):
@@ -9,7 +9,7 @@ class MySpider(manager.Spider):
         self.table_name = "test"
         self.async_number = 1
         self.is_purge = True
-        self.debug = "w"
+        self.debug = False
 
     def start_produce(self):
         for i in ["https://www.baidu.com/s?wd=%E4%BE%8B%E5%AD%90", "https://www.baidu.com/", "https://fanyi.baidu.com/"]:
@@ -17,9 +17,9 @@ class MySpider(manager.Spider):
 
     def parse(self, res):
         print(res.status_code)
-        return [self.Item(status_code=res.status_code+i) for i in range(1)]
+        return [self.Item(content=res.status_code+i) for i in range(10)]
 
 
 if __name__ == '__main__':
-    runner("test.py")
+    run("spider\\test.py")
 

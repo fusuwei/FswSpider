@@ -1,3 +1,5 @@
+import os
+import traceback
 import pymysql
 from DBUtils.PooledDB import PooledDB
 import setting
@@ -211,18 +213,42 @@ class Sql:
             tmplist.append(' ' + tmp + ' ')
         return ' and '.join(tmplist)
 
-async def save(mysql, mes, method, table_name, loop):
-    """
-    存储函数，负责吧爬下的数据存到mysql数据库中
-    :return:
-    """
-    if method == "insql":
-        await loop.run_in_executor(None, mysql.insql, table_name, mes)
-    if method == "update":
-        values = mes["values"]
-        conditions = mes["conditions"]
-        await loop.run_in_executor(None, mysql.update, table_name, values, conditions)
-    if method == "delete":
-        await loop.run_in_executor(None, mysql.delete, table_name, mes)
-    if method == "select":
-        pass
+
+def connecting(dbname, mysql_host, mysql_user, mysql_pwd, mysql_port):
+    if dbname:
+        if mysql_host:
+            setting.mysql_host = mysql_host
+        elif setting.mysql_host:
+            mysql_host = setting.mysql_host
+        else:
+            setting.mysql_host = mysql_host = "127.0.0.1"
+
+        if mysql_user:
+            setting.mysql_user = mysql_user
+        elif setting.mysql_user:
+            mysql_user = setting.mysql_user
+        else:
+            logger.error("未配置数据库用户名")
+            raise ValueError("未配置数据库用户名")
+
+        if mysql_pwd:
+            setting.mysql_pwd = mysql_user
+        elif setting.mysql_pwd:
+            mysql_pwd = setting.mysql_pwd
+        else:
+            logger.error("未配置数据库密码")
+            raise ValueError("未配置数据库密码")
+
+        try:
+            mysql = MySql.mysql_pool(dbname=dbname, mysql_host=mysql_host, mysql_port=mysql_port,
+                                     mysql_user=mysql_user, mysql_pwd=mysql_pwd
+                                 )
+        except Exception as e:
+            logger.error(e)
+            traceback.print_exc()
+            os._exit(1)
+        else:
+            return mysql, mysql_host, mysql_user, mysql_pwd, mysql_port
+    else:
+        logger.error("未配置数据库库名")
+        raise ValueError("未配置数据库库名")

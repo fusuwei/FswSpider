@@ -27,81 +27,57 @@ class Spider:
         self.debug = False
 
         # 数据库配置
-        self.mysql_host = "127.0.0.1"
-        self.mysql_user = "root"
-        self.mysql_pwd = ""
-        self.mysql_port = 3306
-        self.dbname = "FswSpider"
-        self.table_name = ""
+        self.mysql_host = None
+        self.mysql_user = None
+        self.mysql_pwd = None
+        self.mysql_port = None
+        self.dbname = None
+        self.table_name = None
 
         # RabbitMq配置
-        self.rabbitmq_host = "127.0.0.1"
-        self.rabbitmq_user = "fsw"
-        self.rabbitmq_pwd = ""
+        self.rabbitmq_host = None
+        self.rabbitmq_user = None
+        self.rabbitmq_pwd = None
         self.is_purge = False
 
         self._pre_domain_name = None
 
-        self._result_queue = Queue()
-        self._request_ls = list()
-
-    def init(self):
+    def init(self, spider_name=None):
         """
         初始化函数， mysql, RabbitMq 连接, 其他配置
         :return:
         """
         # 爬虫配置初始化
-        self.spider_name = setting.spider_name
-        if not self.spider_name:
-            pass
+        if spider_name:
+            self.spider_name = spider_name
+            setting.spider_name = spider_name
+        elif self.spider_name:
+            setting.spider_name = self.spider_name
+        elif setting.spider_name:
+            self.spider_name = setting.spider_name
+        else:
+            logger.error("未配置爬虫名")
+            raise ValueError("未配置爬虫名！")
 
-        self.async_number = setting.async_number
-        if not self.async_number:
-            self.async_number = 1
+        if self.async_number:
+           setting.async_number = self.async_number
+        elif setting.async_number:
+            self.async_number = setting.async_number
+        else:
+            setting.async_number = self.async_number = 1
 
         # mysql连接
-        if not self.table_name:
-            self.table_name = self.spider_name
-        if self.dbname:
-            if not self.mysql_host:
-                self.mysql_host = setting.mysql_host
-            if not self.mysql_user:
-                self.mysql_user = setting.mysql_user
-            if not self.mysql_pwd:
-                self.mysql_pwd = setting.mysql_pwd
-                if not self.mysql_pwd:
-                    logger.error("没有mysql密码！")
-                    os._exit(-1)
-            if not self.mysql_port:
-                self.mysql_port = setting.mysql_port
-            self.Mysql = MySql.mysql_pool(dbname=self.dbname, mysql_host=self.mysql_host, mysql_port=self.mysql_port,
-                                          mysql_user=self.mysql_user, mysql_pwd=self.mysql_pwd
-                                          )
-            self.insql = self.Mysql.insql
-            self.delete = self.Mysql.delete
-            self.select = self.Mysql.select
-            self.update = self.Mysql.update
+        self.Mysql, self.mysql_host, self.mysql_user, self.mysql_pwd, self.mysql_port \
+            = mysqlconnecting(self.dbname, self.mysql_host, self.mysql_user, self.mysql_pwd, self.mysql_port)
 
-            show_table_sql = "show tables"
-            result = self.Mysql.diy_sql(show_table_sql)
-            self.tables = [i["Tables_in_%s" % self.dbname] for i in result]
+        self.insql = self.Mysql.insql
+        self.delete = self.Mysql.delete
+        self.select = self.Mysql.select
+        self.update = self.Mysql.update
 
-        else:
-            logger.error("请配置数据库参数")
-            os._exit(-1)
         # rabbitmq连接
-        if self.spider_name:
-            if not self.rabbitmq_host:
-                self.rabbitmq_host = setting.rabbitmq_host
-            if not self.rabbitmq_user:
-                self.rabbitmq_user = setting.rabbitmq_user
-            if not self.rabbitmq_pwd:
-                self.rabbitmq_pwd = setting.rabbitmq_pwd
-                if not self.rabbitmq_pwd:
-                    logger.error("RabbitMq密码！")
-                    os._exit(-1)
-            self.Rabbit = RabbitMq.connect(self.spider_name, rabbitmq_host=self.rabbitmq_host,
-                                           rabbitmq_user=self.rabbitmq_user, rabbitmq_pwd=self.rabbitmq_pwd)
+        self.Rabbit, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd = \
+            rabbitconnecting(self.spider_name, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd)
 
         # 其他参数
         self._produce_count = 1
@@ -168,7 +144,7 @@ class Spider:
         loop_thread.setDaemon(True)
         loop_thread.start()
 
-        save_thread = Thread(target=self.start_save)
+        save_thread = Thread(target=self.start_save, )
         save_thread.setDaemon(True)
         save_thread.start()
 
@@ -240,38 +216,18 @@ class Spider:
             """
             return message
 
-    async def before_save(self):
-        try:
-            while True:
-                item = self.item.get()
-                if item.table_name:
-                    table_name = item.table_name
-                elif self.table_name:
-                    table_name = self.table_name
-                else:
-                    logger.error("请配置table_name!")
-                    raise Exception()
-                data = item.to_dict()
-                if table_name not in self.tables:
-                    self.save_loop.run_in_executor(None, self.Mysql.create_table, self.table_name, data)
-                    logger.warning("未填写表名，默认建立以脚本名为表名的表或者没有表")
-                method = item.method
-                ret = await save(self.Mysql, data, method, table_name, self.save_loop)
-                self.item.task_done()
-                return ret
-        except Exception as e:
-            self._flag = True
-            while True:
-                item = self.item.get()
-                self.produce(item.request)
-                self.item.task_done()
-                if self.item.empty():
-                    traceback.print_exc()
-                    os._exit(1)
-
-    def start_save(self):
+    def start_save(self,):
         tasks = []
         for i in range(3):
-            tasks.append(self.before_save())
-        ret = self.save_loop.run_until_complete(asyncio.wait(tasks))
-        print()
+            tasks.append(before_save(self.item, self.table_name, self.Mysql, self.save_loop, self.sql_error))
+        self.save_loop.run_until_complete(asyncio.wait(tasks))
+
+    def sql_error(self):
+        self._flag = True
+        self._url_md5.clear()
+        while True:
+            item = self.item.get()
+            self.produce(item.request)
+            self.item.task_done()
+            if self.item.empty():
+                return

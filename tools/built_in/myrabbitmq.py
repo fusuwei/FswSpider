@@ -1,4 +1,6 @@
 import threading
+import os
+import traceback
 import pika
 import setting
 import time
@@ -110,3 +112,38 @@ class RabbitMq:
     def purge(self, name):
         self.queue_declare()
         self.channel.queue_purge(name)
+
+
+def connecting(name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd):
+    if name:
+        if rabbitmq_host:
+            setting.rabbitmq_host = rabbitmq_host
+        elif setting.rabbitmq_host:
+            rabbitmq_host = setting.rabbitmq_host
+        else:
+            setting.rabbitmq_host = rabbitmq_host = "127.0.0.1"
+
+        if rabbitmq_user:
+            setting.rabbitmq_user = rabbitmq_user
+        elif setting.rabbitmq_user:
+            rabbitmq_user = setting.rabbitmq_user
+        else:
+            logger.error("未配置RabbitMq用户名")
+            raise ValueError("未配置RabbitMq用户名")
+
+        if rabbitmq_pwd:
+            setting.rabbitmq_pwd = rabbitmq_pwd
+        elif setting.rabbitmq_pwd:
+            rabbitmq_pwd = setting.rabbitmq_pwd
+        else:
+            logger.error("未配置RabbitMq密码")
+            raise ValueError("未配置RabbitMq密码")
+        try:
+            Rabbit = RabbitMq.connect(name, rabbitmq_host=rabbitmq_host,
+                                      rabbitmq_user=rabbitmq_user, rabbitmq_pwd=rabbitmq_pwd)
+        except Exception as e:
+            logger.error(e)
+            traceback.print_exc()
+            os._exit(1)
+        else:
+            return Rabbit, rabbitmq_host, rabbitmq_user, rabbitmq_pwd

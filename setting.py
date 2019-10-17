@@ -14,12 +14,12 @@ function = ""
 # rabbitmq
 rabbitmq_host = "127.0.0.1"
 rabbitmq_user = "fsw"
-rabbitmq_pwd = "fsw.1996"
+rabbitmq_pwd = "123456"
 
 # mysql
 mysql_host = "127.0.0.1"
 mysql_user = "root"
-mysql_pwd = "fsw.1996"
+mysql_pwd = "123456"
 mysql_port = 3306
 
 # selenium

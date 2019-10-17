@@ -177,24 +177,24 @@ import threading
 
 
 
-def threaded(loop):
-    import time
-    while True:
-        time.sleep(2)
-        loop.call_soon_threadsafe(queue.put_nowait, time.time())
-        loop.call_soon_threadsafe(lambda: print(queue.qsize()))
-
-
-async def asyncd():
-    while True:
-        time = await queue.get()
-        print(time)
-
-loop = asyncio.get_event_loop()
-queue = asyncio.Queue(loop=loop)
-threading.Thread(target=loop.run_until_complete, args=(asyncd(), )).start()
-# threading.Thread(target=threaded, args=(loop, )).start()
-threaded(loop)
+# def threaded(loop):
+#     import time
+#     while True:
+#         time.sleep(2)
+#         loop.call_soon_threadsafe(queue.put_nowait, time.time())
+#         loop.call_soon_threadsafe(lambda: print(queue.qsize()))
+#
+#
+# async def asyncd():
+#     while True:
+#         time = await queue.get()
+#         print(time)
+#
+# loop = asyncio.get_event_loop()
+# queue = asyncio.Queue(loop=loop)
+# threading.Thread(target=loop.run_until_complete, args=(asyncd(), )).start()
+# # threading.Thread(target=threaded, args=(loop, )).start()
+# threaded(loop)
 
 
 # import asyncio
@@ -208,3 +208,7 @@ threaded(loop)
 #
 # loop.run_forever()
 # loop.run_until_complete(asyncio.wait(tasks))
+
+# url = '123'
+# req = type("Request", (), {"url": url})
+# print()
