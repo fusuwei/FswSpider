@@ -103,7 +103,7 @@ class RabbitMq:
                     self.del_queue(self.name)
                     break
         except Exception as e:
-            logger.error(consu.exc_traceback)
+            logger.error(e)
 
     def del_queue(self, name, if_unused=False, if_empty=False):
         self.queue_declare()

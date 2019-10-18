@@ -236,7 +236,7 @@ class Spider:
 
     def start_save(self,):
         tasks = []
-        for i in range(3):
+        for i in range(1):
             tasks.append(before_save(self.item, self.table_name, self.Mysql, self.save_loop, self.sql_error))
         self.save_loop.run_until_complete(asyncio.wait(tasks))
 
