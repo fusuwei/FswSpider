@@ -54,7 +54,7 @@ class MySql:
         cursor.close()
         conn.close()
 
-    def select(self, tablename, keys, conditions, isdistinct=0, limit=None, order_by=None, one=False):
+    def select(self, tablename, keys, conditions=None, isdistinct=0, limit=None, order_by=None, one=False):
         sql = self.sql.get_s_sql(tablename, keys, conditions, isdistinct, limit, order_by,)
         conn, cursor = self.open()
         cursor.execute(sql)
@@ -78,6 +78,7 @@ class MySql:
         conn, cursor = self.open()
         cursor.execute(sql)
         conn.commit()
+        print("更新信息：", value)
         self.close(conn, cursor)
 
     def insql(self, tablename, conditions):
@@ -192,24 +193,22 @@ class Sql:
         return sql
 
     def dict_2_str(self, dictin):
-
         '''
         将字典变成，key='value',key='value' 的形式
         '''
         tmplist = []
         for k, v in dictin.items():
-            tmp = "%s='%s'" % (pymysql.escape_string(str(k)), pymysql.escape_string(str(v)))
+            tmp = "%s='%s'" % (k, pymysql.escape_string(str(v)))
             tmplist.append(' ' + tmp + ' ')
         return ','.join(tmplist)
 
     def dict_2_str_and(self, dictin):
-        dictin = pymysql.escape_dict(dictin, "utf8")
         '''
         将字典变成，key='value' and key='value'的形式
         '''
         tmplist = []
         for k, v in dictin.items():
-            tmp = "%s='%s'" % (pymysql.escape_string(str(k)), pymysql.escape_string(str(v)))
+            tmp = "%s='%s'" % (k, pymysql.escape_string(str(v)))
             tmplist.append(' ' + tmp + ' ')
         return ' and '.join(tmplist)
 

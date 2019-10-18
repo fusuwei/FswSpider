@@ -25,6 +25,7 @@ class Spider:
         self.cookies = None
         self.max_times = 3
         self.timeout = 10
+        self.download_delay = None
         self.session = None
         self.debug = False
 
@@ -93,7 +94,7 @@ class Spider:
         self.Request = Request
         self.Response = Response
         self.Item = Item
-        self.is_invalid = False
+        self.is_invalid = True
         self._flag = False
 
     def start(self):
@@ -221,7 +222,8 @@ class Spider:
             traceback.print_exc()
             os._exit(1)
         else:
-            self.dispatch(res, obj)
+            if res:
+                self.dispatch(res, obj)
             channel.basic_ack(delivery_tag=tag)
 
     def remessage(self, message):

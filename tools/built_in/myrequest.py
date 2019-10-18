@@ -4,6 +4,7 @@ import setting
 from tools import log
 from tools.proxy import ip_process
 from importlib import import_module
+import time
 try:
     from tools.middleware import DefaultMiddleware
 except Exception:
@@ -28,13 +29,14 @@ def import_libs():
 
 def middleware(func, ):
     def inner(spider, request, *args, **kwargs):
+        try:
+            dm = DefaultMiddleware()
+            request, spider = dm.process_request(request, spider)
+        except Exception:
+            pass
         Middleware = import_libs()
         if Middleware:
-            try:
-                DefaultMiddleware().process_request(request, spider)
-            except Exception:
-                pass
-            Middleware.process_request(request, spider)
+            request, spider = Middleware.process_request(request, spider)
         return func(spider, request, *args, **kwargs)
     return inner
 
@@ -67,6 +69,13 @@ async def requesting(spider, request, max_times=3):
     is_async = spider.is_async
     Response = spider.Response
     allow_code = spider.allow_code
+    if request.cookies:
+        if request.headers:
+            request.headers["Cookie"] = '; '.join([k+'='+v for k, v in request.cookies.items()])
+        else:
+            request.headers = {"Cookie": '; '.join([k+'='+v for k, v in request.cookies.items()])}
+    if spider.download_delay:
+        time.sleep(spider.download_delay)
     if spider.timeout:
         timeout = spider.timeout
     else:
@@ -75,14 +84,14 @@ async def requesting(spider, request, max_times=3):
         if method.upper() == "GET":
             if is_async:
                 async with session.get(url=request.url, params=request.params, headers=request.headers,
-                                       proxy=request.proxies, cookies=request.cookies,
+                                       proxy=request.proxies,
                                        timeout=timeout, allow_redirects=request.allow_redirects) as res:
                     content = await res.read()
                     status_code = res.status
                     charset = res.charset
             else:
                 res = session.get(request.url, params=request.params, headers=request.headers,
-                                  proxies=request.proxies, cookies=request.cookies,
+                                  proxies=request.proxies,
                                   timeout=timeout,
                                   allow_redirects=request.allow_redirects)
                 content = res.content
@@ -92,14 +101,14 @@ async def requesting(spider, request, max_times=3):
         elif method.upper() == 'POST':
             if is_async:
                 async with session.post(request.url, data=request.data, headers=request.headers, proxy=request.proxies,
-                                        timeout=timeout, cookies=request.cookies,
+                                        timeout=timeout,
                                         allow_redirects=request.allow_redirects, json=request.json) as res:
                     content = await res.read()
                     status_code = res.status
                     charset = res.charset
             else:
                 res = session.post(request.url, data=request.data, headers=request.headers, proxies=request.proxies,
-                                   timeout=timeout, cookies=request.cookies,
+                                   timeout=timeout,
                                    json=request.json, allow_redirects=request.allow_redirects, )
                 content = res.content
                 status_code = res.status_code
@@ -156,12 +165,13 @@ async def request(spider, request,):
             print("开始请求：", request.url)
             res = await requesting(spider, request, max_times=max_times)
             if isinstance(res, spider.Request):
-                spider.is_invalid = True
                 continue
             else:
+                spider.is_invalid = False
                 ret = callback(res)
                 return ret
     res.count += 1
+    spider.is_invalid = True
     return res
 
 
