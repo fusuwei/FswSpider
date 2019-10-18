@@ -226,14 +226,6 @@ class Spider:
                 self.dispatch(res, obj)
             channel.basic_ack(delivery_tag=tag)
 
-    def remessage(self, message):
-            """
-            low版中间件
-            :param message:
-            :return:
-            """
-            return message
-
     def start_save(self,):
         tasks = []
         for i in range(1):
