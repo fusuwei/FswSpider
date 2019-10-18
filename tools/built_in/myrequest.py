@@ -156,6 +156,7 @@ async def request(spider, request,):
             print("开始请求：", request.url)
             res = await requesting(spider, request, max_times=max_times)
             if isinstance(res, spider.Request):
+                spider.is_invalid = True
                 continue
             else:
                 ret = callback(res)

@@ -93,7 +93,7 @@ class Spider:
         self.Request = Request
         self.Response = Response
         self.Item = Item
-
+        self.is_invalid = False
         self._flag = False
 
     def start(self):

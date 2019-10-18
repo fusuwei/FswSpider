@@ -11,9 +11,10 @@ class DefaultMiddleware:
             proxies = get_ip()
             request.proxies = ip_process(proxies, spider.is_async)
         if spider.auto_cookies:
-            if request.proxies:
-                proxies = request.proxies.replace("http://", "").replace("https://", "")
-                cookies = get_cookies(request.domain_name, proxy=proxies)
-            else:
-                cookies = get_cookies(request.domain_name)
-            request.cookies = cookies
+            if spider.is_invalid:
+                if request.proxies:
+                    proxies = request.proxies.replace("http://", "").replace("https://", "")
+                    cookies = get_cookies(request.domain_name, proxy=proxies)
+                else:
+                    cookies = get_cookies(request.domain_name)
+                request.cookies = cookies
