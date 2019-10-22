@@ -12,16 +12,13 @@ except Exception:
 logger = log(__name__)
 
 
-def import_libs():
+def import_libs(spider_name):
     Middleware = None
     if hasattr(setting, "MIDDLEWARES"):
         middleware_dict = getattr(setting, "MIDDLEWARES")
-        maxk, maxv = None, 0
-        for k, v in middleware_dict.items():
-            if maxv < v:
-                maxk, maxv = k, v
-        if maxv and maxk:
-            path, pack = maxk.rsplit(".", maxsplit=1)
+        middleware = middleware_dict.get(spider_name, "")
+        if middleware:
+            path, pack = middleware.rsplit(".", maxsplit=1)
             Middleware = import_module(path)
             Middleware = getattr(Middleware, pack)()
     return Middleware
@@ -34,7 +31,7 @@ def middleware(func, ):
             request, spider = dm.process_request(request, spider)
         except Exception:
             pass
-        Middleware = import_libs()
+        Middleware = import_libs(spider.spider_name)
         if Middleware:
             request, spider = Middleware.process_request(request, spider)
         return func(spider, request, *args, **kwargs)
