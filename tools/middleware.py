@@ -53,3 +53,17 @@ class WangYiYunBuff:
             else:
                 request.cookies = None
         return request, spider
+
+
+class LaGouWang:
+    def process_request(self, request, spider):
+        if spider.is_invalid:
+            cookies = get_cookies(request.domain_name)
+            request.cookies = cookies
+        request.headers = {
+            'Host': 'www.lagou.com',
+            'Origin': 'https://www.lagou.com',
+            'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+        }
+        return request, spider

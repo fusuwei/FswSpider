@@ -168,7 +168,6 @@ async def request(spider, request,):
                 ret = callback(res)
                 return ret
     res.count += 1
-    spider.is_invalid = True
     return res
 
 

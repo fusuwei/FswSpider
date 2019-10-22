@@ -25,6 +25,7 @@ mysql_port = 3306
 # 中间件
 MIDDLEWARES = {
     "wangyiyun_buff": 'tools.middleware.WangYiYunBuff',
+    "lagouwang": 'tools.middleware.LaGouWang',
     # 'tools.middleware.DefaultMiddleware': 543,
 }
 

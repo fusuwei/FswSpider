@@ -79,12 +79,7 @@ def get_cookies(url, headless=True, executable_path=None, proxy=None):
     :return: 字符串cookies，需要放在headers里
     """
     new_url = re.search("(http|https)://(www.)?(\w+(\.)?)+", url).group()
-    loop = asyncio.get_event_loop()
-    cookies = loop.run_until_complete(pyppeteer_get_cookies(new_url, headless=headless,
-                                                            executable_path=executable_path,
-                                                            proxy=proxy))
-    if not cookies:
-        cookies = selenium_get_cookies(new_url, headless, executable_path, proxy)
+    cookies = selenium_get_cookies(new_url, headless, executable_path, proxy)
     return cookies
 
 
@@ -145,5 +140,5 @@ def selenium_get_cookies(url, headless=True, executable_path=None, proxy=None):
 
 
 if __name__ == '__main__':
-    a = get_cookies("https://www.baidu.com/")
+    a = get_cookies("https://www.lagou.com/")
     print(a)
