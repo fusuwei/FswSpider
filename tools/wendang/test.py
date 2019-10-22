@@ -232,29 +232,58 @@ import threading
 #
 # loop.run_until_complete(asyncio.wait(tasks))
 
-import requests
-
-url = 'https://buff.163.com/api/market/goods?game=csgo&page_num=4&_=1571367862061'
-# headers={
-#     'Accept':'application/json, text/javascript, */*; q=0.01',
-# 'Accept-Encoding':'gzip, deflate, br',
-# 'Accept-Language':'zh-CN,zh;q=0.9',
-# 'Cache-Control':'no-cache',
-# 'Connection':'keep-alive',
-# # 'Cookie':'__root_domain_v=.163.com; _qddaz=QD.pownlj.k9f274.jv0mxvqq; _ga=GA1.2.1070801632.1556437903; _ntes_nnid=1c1909fcfc0c01b702376c25a33b9281,1556437906497; _ntes_nuid=1c1909fcfc0c01b702376c25a33b9281; UM_distinctid=16cb36744d7659-040e14e5f81ae5-3c375f0d-1fa400-16cb36744d860c; hb_MA-BFF5-63705950A31C_source=www.baidu.com; mail_psc_fingerprint=5788af9d36f0e0ffa8dc04b73746b9b9; ne_analysis_trace_id=1571360001914; s_n_f_l_n3=b01b39f12bb9e2511571360001918; _antanalysis_s_id=1571360002280; vinfo_n_f_l_n3=b01b39f12bb9e251.1.2.1566377985347.1568871730232.1571360043505; csrf_token=80acb585100202efba7f45aa5a7406af2dce7e45; game=csgo; _gid=GA1.2.153986468.1571367585; NTES_YD_SESS=AyZj3wbpegIcdVwXUE8Fzy6YcGEl2vuWG0TDskfKttvzBlf2BpU6VjpM3ZkYUu1QSSjClidujAw1bWHdU61YQxj03KIXf5Q.cp1vVpoF_qk1Y.H8fKyCspp_hxQYjVlWQ3iJGjv4TFqFjRskIk8g1RCa.1u.73jzdJn_NqEV4VVeMg6ZQ._5oArszU6aEAHS0ICF_OW4wExCRTAgsCU.966sF1Q2WFkn_1_AA7gpt2daC; S_INFO=1571367737|0|3&80##|17061315803; P_INFO=17061315803|1571367737|1|netease_buff|00&99|zhj&1571059698&g37_client#hub&420100#10#0#0|&0|null|17061315803; session=1-huFmoGCnva8i2qi_4tqMTkXQvW_4mH2tqIgIikdNz2SB2043395372; Locale-Supported=zh-Hans',
-# 'Host':'buff.163.com',
-# 'Pragma':'no-cache',
-# 'Referer':'https://buff.163.com/market/?game=csgo',
-# 'Sec-Fetch-Mode':'cors',
-# 'Sec-Fetch-Site':'same-origin',
-# 'User-Agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
-# 'X-Requested-With':'XMLHttpRequest',
-# "Cookie" :"session=1-DUfVKFfpwzZw6lk0gj6XYtgJ0jZTTNH8sipZA7Z0devQ2046769729; P_INFO=18866674052|1571380159|1|netease_buff|00&99|hongkong&1571316120&gp#hub&420100#10#0#0|&0|null|18866674052; NTES_YD_SESS=2s2kscDrzGdc_5bcxa7qzk8Kw1Vqe0pl.G_YgOJvmm9n.6Js.4TFkU4bajXl17SJp4Y4p.r81XtMPfjLSky1Y.Am2vRNiBflTJhNclhiIFkeis6BOJ_LjS4CS7rMUk6zrAZtPU9d_0Ipab63kP1XU28L8Eh8RAUnitaCpIfkdkkdnZk8zSF2z7fY7eZeHqvvBWZLwH98ILxG9IsmuoOaedG1g1xLGYdIMNA5_pAZ_P8aB; _gat_gtag_UA_109989484_1=1; _gid=GA1.2.1484635456.1571380081; game=csgo; _ga=GA1.2.1218642560.1571380081; S_INFO=1571380159|0|3&80##|18866674052; csrf_token=77e7f18d766ef12fbb31c4a208cfa593ee804d1e",
+# import requests
+# import time
+# session = requests.session()
+# headers = {
+#     'Host': 'www.lagou.com',
+#     'Origin': 'https://www.lagou.com',
+#     'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
+#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
 # }
-headers={'User-Agent': 'Mozilla/5.0 (Windows NT 5.1; rv:6.0.2) Gecko/20100101 Firefox/6.0.2', 'Cookie': 'session=1-0lxLAatk0ngIbvPJ0jn7vc6P1ckVDxtNB8Dwf_9U3_Tz2046654463; P_INFO=18866478984|1571382331|1|netease_buff|00&99|JO&1571381631&g91_client#hub&420100#10#0#0|&0|null|18866478984; NTES_YD_SESS=jmamZVyVc36PaBea2_CK7JPW861eQEeFZDtzTchCxxBSukdfbTgqEaPMG4seKFLO0zCg5s8JSMjM4L0KCT_6qPhwc5aIGaCKEZm1IvsZC6U7PNaGWWlGF_0mpdRnfLOKR8FSYfBltoVLsIiaK5naiOf31bN1i8fv6S9mqVuLlLLyAL9GWUL2RaomT8bSNm4vUvdpYHC3gxpyX0d5NAlqU6Dh2ZZq13djHxpb7W1R8bt4Q; _gat_gtag_UA_109989484_1=1; _gid=GA1.2.268443136.1571382249; game=csgo; _ga=GA1.2.923934886.1571382249; S_INFO=1571382331|0|3&80##|18866478984; csrf_token=f38f55a9ab8bbe5c48060d89fb2e7865ea80e046'}
-ret = requests.get(url, headers=headers)
-print()
-
-# """
-# <class 'dict'>: {'User-Agent': 'Mozilla/5.0 (Windows NT 5.1; rv:6.0.2) Gecko/20100101 Firefox/6.0.2', 'Cookie': 'session=1-0lxLAatk0ngIbvPJ0jn7vc6P1ckVDxtNB8Dwf_9U3_Tz2046654463; P_INFO=18866478984|1571382331|1|netease_buff|00&99|JO&1571381631&g91_client#hub&420100#10#0#0|&0|null|18866478984; NTES_YD_SESS=jmamZVyVc36PaBea2_CK7JPW861eQEeFZDtzTchCxxBSukdfbTgqEaPMG4seKFLO0zCg5s8JSMjM4L0KCT_6qPhwc5aIGaCKEZm1IvsZC6U7PNaGWWlGF_0mpdRnfLOKR8FSYfBltoVLsIiaK5naiOf31bN1i8fv6S9mqVuLlLLyAL9GWUL2RaomT8bSNm4vUvdpYHC3gxpyX0d5NAlqU6Dh2ZZq13djHxpb7W1R8bt4Q; _gat_gtag_UA_109989484_1=1; _gid=GA1.2.268443136.1571382249; game=csgo; _ga=GA1.2.923934886.1571382249; S_INFO=1571382331|0|3&80##|18866478984; csrf_token=f38f55a9ab8bbe5c48060d89fb2e7865ea80e046'}
-# """
+# url = 'https://www.lagou.com'
+# ret = session.get(url, headers=headers)
+# c = requests.cookies.RequestsCookieJar()
+# a = {'LGUID': '20191022215752-f075835b-f4d3-11e9-a604-5254005c3644', 'PRE_LAND': 'https%3A%2F%2Fwww.lagou.com%2F', 'PRE_SITE': '', 'LGSID': '20191022215752-f07581d1-f4d3-11e9-a604-5254005c3644', 'user_trace_token': '20191022215752-f07580c7-f4d3-11e9-a604-5254005c3644', '_gid': 'GA1.2.1826648091.1571752672', 'LGRID': '20191022215752-f0758304-f4d3-11e9-a604-5254005c3644', 'PRE_HOST': '', '_ga': 'GA1.2.189801769.1571752672', 'PRE_UTM': '', 'JSESSIONID': 'ABAAABAAADEAAFIBF0B65782D0482AD2F981ACB4F49E968', '_gat': '1', 'Hm_lpvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'X_HTTP_TOKEN': '42daf4b72327b2812762571751bf5e71415983ed09', 'Hm_lvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'WEBTJ-ID': '10222019%2C215751-16df3c27a7f166-047b5b75f4f1c3-72222910-480000-16df3c27a80265'}
+# for k,v in a.items():
+#     c.set(k, v)
+# session.cookies.update(c)
+# url1 = "https://www.lagou.com/jobs/positionAjax.json?needAddtionalResult=false"
+# data = {
+# 'first':'false',
+# 'pn':'2',
+# 'kd':'爬虫',
+# 'sid':'2dd815cd8cfb401baf957f11e8022cbd',
+# }
+# time.sleep(1)
+# ret1 = session.post(url1, data=data, headers=headers)
+# print()
+import aiohttp
+headers = {
+    'Host': 'www.lagou.com',
+    'Origin': 'https://www.lagou.com',
+    'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+}
+coo = {'LGUID': '20191022215752-f075835b-f4d3-11e9-a604-5254005c3644', 'PRE_LAND': 'https%3A%2F%2Fwww.lagou.com%2F', 'PRE_SITE': '', 'LGSID': '20191022215752-f07581d1-f4d3-11e9-a604-5254005c3644', 'user_trace_token': '20191022215752-f07580c7-f4d3-11e9-a604-5254005c3644', '_gid': 'GA1.2.1826648091.1571752672', 'LGRID': '20191022215752-f0758304-f4d3-11e9-a604-5254005c3644', 'PRE_HOST': '', '_ga': 'GA1.2.189801769.1571752672', 'PRE_UTM': '', 'JSESSIONID': 'ABAAABAAADEAAFIBF0B65782D0482AD2F981ACB4F49E968', '_gat': '1', 'Hm_lpvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'X_HTTP_TOKEN': '42daf4b72327b2812762571751bf5e71415983ed09', 'Hm_lvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'WEBTJ-ID': '10222019%2C215751-16df3c27a7f166-047b5b75f4f1c3-72222910-480000-16df3c27a80265'}
+import time
+async def a():
+    conn = aiohttp.TCPConnector(verify_ssl=False, limit=100)
+    async with aiohttp.ClientSession(connector=conn, headers=headers,) as session:
+        async with session.get('https://www.lagou.com') as resp:
+            # session.cookie_jar.update_cookies(coo)
+            print(resp.status)
+            time.sleep(1)
+            data = {
+'first':'false',
+'pn':'2',
+'kd':'爬虫',
+'sid':'2dd815cd8cfb401baf957f11e8022cbd',
+}
+            rl1 = "https://www.lagou.com/jobs/positionAjax.json?needAddtionalResult=false"
+            async with session.post(rl1, data=data,  headers=headers) as resp1:
+                con = await resp1.read()
+                con = con.decode()
+                print(resp.status)
+import asyncio
+asyncio.run(a())

@@ -12,12 +12,12 @@ class MySpider(manager.Spider):
         self.debug = False
 
     def start_produce(self):
-        for i in ["https://www.google.com/"]:
+        for i in ["https://www.baidu.com/"]:
             yield self.Request(url=i,)
 
     def parse(self, res):
         print(res.status_code)
-        return [self.Item(content=res.status_code+i) for i in range(10)]
+        return [self.Item(status_code=res.status_code+i) for i in range(10)]
 
 
 if __name__ == '__main__':
