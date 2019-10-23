@@ -11,7 +11,8 @@ class DefaultMiddleware:
         if spider.auto_headers:
             request.headers = {"User-Agent": get_ua()}
         if spider.auto_proxy:
-            proxies = get_ip()
+            mysql = spider.MySql.mysql_pool(dbname="proxypool", mysql_host="127.0.0.1", mysql_user="root", mysql_pwd="123456")
+            proxies = get_ip(mysql)
             request.proxies = ip_process(proxies, spider.is_async)
         if spider.auto_cookies:
             if spider.is_invalid:
