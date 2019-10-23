@@ -28,6 +28,7 @@ class Spider:
         self.download_delay = None
         self.session = None
         self.debug = False
+        self.get_ip = False
 
         # 数据库配置
         self.mysql_host = None

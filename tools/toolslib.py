@@ -113,6 +113,8 @@ async def pyppeteer_get_cookies(url, headless=True, executable_path=None, proxy=
 
 
 def selenium_get_cookies(url, headless=True, executable_path=None, proxy=None):
+    if proxy:
+        proxy = proxy.replace("http://", '').replace("https://", '')
     chrome_options = Options()
     if headless:
         chrome_options.add_argument('--headless')

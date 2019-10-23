@@ -4,16 +4,20 @@ from tools.toolslib import get_cookies
 from tools.wangyiyidun import CrackSlider
 import random
 import json
+import setting
 
 
 class DefaultMiddleware:
     def process_request(self, request, spider):
+        if spider.get_ip:
+            mysql = spider.mysqlconnecting(dbname="proxypool", mysql_host="127.0.0.1", mysql_user="root", mysql_pwd="123456")[0]
+            get_ip(mysql)
         if spider.auto_headers:
             request.headers = {"User-Agent": get_ua()}
         if spider.auto_proxy:
-            mysql = spider.MySql.mysql_pool(dbname="proxypool", mysql_host="127.0.0.1", mysql_user="root", mysql_pwd="123456")
-            proxies = get_ip(mysql)
-            request.proxies = ip_process(proxies, spider.is_async)
+            if setting.proxies:
+                proxies = random.choice(setting.proxies)
+                request.proxies = ip_process(proxies, spider.is_async)
         if spider.auto_cookies:
             if spider.is_invalid:
                 if request.proxies:
@@ -59,7 +63,7 @@ class WangYiYunBuff:
 class LaGouWang:
     def process_request(self, request, spider):
         if spider.is_invalid:
-            cookies = get_cookies(request.domain_name)
+            cookies = get_cookies(request.domain_name, proxy=request.proxies)
             request.cookies = cookies
         request.headers = {
             'Host': 'www.lagou.com',
