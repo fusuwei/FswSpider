@@ -120,15 +120,18 @@ async def requesting(spider, request, max_times=3):
     except Exception as e:
         logger.error("请求失败，未返回Response")
         request.err = e
+        spider.is_invalid = True
         return request
     else:
         if (status_code == 200 and content is not None) or status_code in allow_code:
+            spider.is_invalid = False
             cookies = res.cookies
             headers = res.headers
             return Response(url=request.url, content=content, status_code=status_code, charset=charset, cookies=cookies,
                             headers=headers, callback=request.callback, proxies=request.proxies, method=method,
                             meta=request.meta)
         else:
+            spider.is_invalid = True
             logger.error("第%d次请求！状态码为%s" % (abs(max_times-3), status_code))
             return request
 
@@ -168,7 +171,6 @@ async def request(spider, request,):
             if isinstance(res, spider.Request):
                 continue
             else:
-                spider.is_invalid = False
                 ret = callback(res)
                 if res == ret:
                     return request

@@ -12,6 +12,7 @@ class DefaultMiddleware:
         if spider.get_ip:
             mysql = spider.mysqlconnecting(dbname="proxypool", mysql_host="127.0.0.1", mysql_user="root", mysql_pwd="123456")[0]
             get_ip(mysql)
+            spider.get_ip = False
         if spider.auto_headers:
             request.headers = {"User-Agent": get_ua()}
         if spider.auto_proxy:
