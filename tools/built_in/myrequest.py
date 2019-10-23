@@ -1,5 +1,6 @@
 import aiohttp
 import requests
+from requests.cookies import RequestsCookieJar
 import setting
 from tools import log
 from tools.proxy import ip_process
@@ -67,10 +68,13 @@ async def requesting(spider, request, max_times=3):
     Response = spider.Response
     allow_code = spider.allow_code
     if request.cookies:
-        if request.headers:
-            request.headers["Cookie"] = '; '.join([k+'='+v for k, v in request.cookies.items()])
+        if is_async:
+            session.cookie_jar.update_cookies(request.cookies)
         else:
-            request.headers = {"Cookie": '; '.join([k+'='+v for k, v in request.cookies.items()])}
+            cook = RequestsCookieJar()
+            for k, v in request.cookies.items():
+                cook.set(k, v)
+            session.cookies.update(cook)
     if spider.download_delay:
         time.sleep(spider.download_delay)
     if spider.timeout:
