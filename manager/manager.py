@@ -19,6 +19,7 @@ class Spider:
         self.auto_proxy = False
         self.auto_cookies = False
         self.auto_headers = False
+        self.clear_cookies = True
         self.allow_code = []
         self._url_md5 = set()
         self.is_async = True

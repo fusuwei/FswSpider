@@ -15,6 +15,11 @@ class DefaultMiddleware:
             spider.get_ip = False
         if spider.auto_headers:
             request.headers = {"User-Agent": get_ua()}
+        if spider.clear_cookies:
+            if spider.is_async:
+                spider.session.cookie_jar.clear()
+            else:
+                spider.session.cookies.clear()
         if spider.auto_proxy:
             if setting.proxies:
                 proxies = random.choice(setting.proxies)
@@ -62,14 +67,32 @@ class WangYiYunBuff:
 
 
 class LaGouWang:
+    def __init__(self):
+        self._count = 0
+
     def process_request(self, request, spider):
-        if spider.is_invalid:
+        if "show=" in request.url:
+            if setting.proxies:
+                proxies = random.choice(setting.proxies)
+                request.proxies = ip_process(proxies, spider.is_async)
+            request.headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+            }
+            return request, spider
+
+        elif spider.is_invalid:
+            if setting.proxies:
+                proxies = random.choice(setting.proxies)
+                request.proxies = ip_process(proxies, spider.is_async)
             cookies = get_cookies(request.domain_name, proxy=request.proxies)
             request.cookies = cookies
-        request.headers = {
-            'Host': 'www.lagou.com',
-            'Origin': 'https://www.lagou.com',
-            'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
-        }
-        return request, spider
+            request.headers = {
+                'Host': 'www.lagou.com',
+                'Origin': 'https://www.lagou.com',
+                'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+            }
+            self._count += 1
+            return request, spider
+        else:
+            return request, spider

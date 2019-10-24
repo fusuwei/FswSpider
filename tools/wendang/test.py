@@ -260,30 +260,40 @@ import threading
 # print()
 import aiohttp
 headers = {
-    'Host': 'www.lagou.com',
-    'Origin': 'https://www.lagou.com',
-    'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
+
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
 }
-coo = {'LGUID': '20191022215752-f075835b-f4d3-11e9-a604-5254005c3644', 'PRE_LAND': 'https%3A%2F%2Fwww.lagou.com%2F', 'PRE_SITE': '', 'LGSID': '20191022215752-f07581d1-f4d3-11e9-a604-5254005c3644', 'user_trace_token': '20191022215752-f07580c7-f4d3-11e9-a604-5254005c3644', '_gid': 'GA1.2.1826648091.1571752672', 'LGRID': '20191022215752-f0758304-f4d3-11e9-a604-5254005c3644', 'PRE_HOST': '', '_ga': 'GA1.2.189801769.1571752672', 'PRE_UTM': '', 'JSESSIONID': 'ABAAABAAADEAAFIBF0B65782D0482AD2F981ACB4F49E968', '_gat': '1', 'Hm_lpvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'X_HTTP_TOKEN': '42daf4b72327b2812762571751bf5e71415983ed09', 'Hm_lvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'WEBTJ-ID': '10222019%2C215751-16df3c27a7f166-047b5b75f4f1c3-72222910-480000-16df3c27a80265'}
 import time
 async def a():
-    conn = aiohttp.TCPConnector(verify_ssl=False, limit=100)
+    conn = aiohttp.TCPConnector(verify_ssl=True, limit=100)
     async with aiohttp.ClientSession(connector=conn, headers=headers,) as session:
-        async with session.get('https://www.lagou.com') as resp:
+        async with session.get('https://www.lagou.com/jobs/5724962.html?show=776ad21637a3433da09d0410c5d8d81f',
+                               proxy="http://106.12.199.151:8089"
+                               ) as resp:
             # session.cookie_jar.update_cookies(coo)
             print(resp.status)
-            time.sleep(1)
-            data = {
-'first':'false',
-'pn':'2',
-'kd':'爬虫',
-'sid':'2dd815cd8cfb401baf957f11e8022cbd',
-}
-            rl1 = "https://www.lagou.com/jobs/positionAjax.json?needAddtionalResult=false"
-            async with session.post(rl1, data=data,  headers=headers) as resp1:
-                con = await resp1.read()
-                con = con.decode()
-                print(resp.status)
+        time.sleep(3)
+        async with session.get('https://www.lagou.com/jobs/6382531.html?show=776ad21637a3433da09d0410c5d8d81f',
+                               proxy="http://39.108.123.4:3128"
+                               ) as resp:
+            # session.cookie_jar.update_cookies(coo)
+            print(resp.status)
+        time.sleep(5)
+        async with session.get('https://www.lagou.com/jobs/6423308.html?show=776ad21637a3433da09d0410c5d8d81f',
+                               proxy="http://106.12.83.54:8089"
+                               ) as resp:
+            # session.cookie_jar.update_cookies(coo)
+            print(resp.status)
+        time.sleep(5)
+        session.cookie_jar.clear()
+        async with session.get('https://www.lagou.com/jobs/5210418.html?show=776ad21637a3433da09d0410c5d8d81f',
+                               proxy="http://106.12.133.224:8089"
+                               ) as resp:
+            # session.cookie_jar.update_cookies(coo)
+            print(resp.status)
 import asyncio
 asyncio.run(a())
+# import requests
+# session = requests.session()
+# a = session.get("https://www.baidu.com",)
+# print()
