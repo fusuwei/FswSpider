@@ -35,35 +35,35 @@ class DefaultMiddleware:
         return request, spider
 
 
-class WangYiYunBuff:
-    def __init__(self):
-        self.crackSlider = CrackSlider
-        self.cookies = None
-
-    def process_request(self, request, spider):
-        if not self.cookies:
-            self.cookies = spider.Mysql.select("cookies", ["*"], {"id": random.randint(1, 7)})[0]
-        if spider.is_invalid:
-            phone = self.cookies["phone"]
-            pwd = self.cookies["pwd"]
-            c = self.crackSlider()
-            while True:
-                try:
-                    request.cookies = c.crack_slider(phone, pwd)
-                    c.close()
-                except Exception:
-                    c.close()
-                    continue
-                else:
-                    break
-            spider.Mysql.update("cookies", {"cook": request.cookies}, {"phone": phone})
-        else:
-            self.cookies = spider.Mysql.select("cookies", ["*"], {"id": random.randint(1, 7)})[0]
-            if self.cookies["cook"]:
-                request.cookies = json.loads(self.cookies["cook"].replace("'", '"'))
-            else:
-                request.cookies = None
-        return request, spider
+# class WangYiYunBuff:
+#     def __init__(self):
+#         self.crackSlider = CrackSlider
+#         self.cookies = None
+#
+#     def process_request(self, request, spider):
+#         if not self.cookies:
+#             self.cookies = spider.Mysql.select("cookies", ["*"], {"id": random.randint(1, 7)})[0]
+#         if spider.is_invalid:
+#             phone = self.cookies["phone"]
+#             pwd = self.cookies["pwd"]
+#             c = self.crackSlider()
+#             while True:
+#                 try:
+#                     request.cookies = c.crack_slider(phone, pwd)
+#                     c.close()
+#                 except Exception:
+#                     c.close()
+#                     continue
+#                 else:
+#                     break
+#             spider.Mysql.update("cookies", {"cook": request.cookies}, {"phone": phone})
+#         else:
+#             self.cookies = spider.Mysql.select("cookies", ["*"], {"id": random.randint(1, 7)})[0]
+#             if self.cookies["cook"]:
+#                 request.cookies = json.loads(self.cookies["cook"].replace("'", '"'))
+#             else:
+#                 request.cookies = None
+#         return request, spider
 
 
 class LaGouWang:
@@ -100,5 +100,6 @@ class LaGouWang:
 
 class BossZhiPin:
     def process_request(self, request, spider):
+        request.allow_redirects = False
         request.headers = spider.headers
         return request, spider

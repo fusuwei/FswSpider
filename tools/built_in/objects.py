@@ -21,7 +21,7 @@ class Response:
         self.error = error
         self.meta = meta
         self.text = self._parse_content(charset, content)
-        self.resp = selector(self)
+        self.resp = self.selector()
 
     def _parse_content(self, charset, content):
         if not content:
@@ -63,14 +63,18 @@ class Response:
 
     def selector(self):
         if self.text is not None:
-            return selector(res=self)
+            try:
+                resp = selector(res=self)
+            except Exception:
+                resp = None
+            return resp
 
 class Request:
     def __init__(self, url: Union[int, str], method: str = "GET", callback: str = "parse",
                  data: Union[dict, None] = None, params: Union[dict, None] = None, json: Union[dict, None] = None,
                  headers: Union[dict, None] = None, proxies: str = None, timeout: Union[int, float] = 3,
                  max_times: int = 3, cookies: Union[dict, None] = None, verify: bool = False,
-                 is_async: bool = True,  allow_redirects=False, count=0, meta=None):
+                 is_async: bool = True,  allow_redirects=True, count=0, meta=None):
         self.url = url
         self.method = method
         self.headers = headers

@@ -1,12 +1,12 @@
-from PIL import Image
+# from PIL import Image
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-import cv2
-import numpy as np
+# import cv2
+# import numpy as np
 from io import BytesIO
 import time, requests
 

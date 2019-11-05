@@ -39,6 +39,9 @@ import execjs
 import requests
 from urllib import parse
 import re
+import os
+os.environ["PATH"] = os.environ["PATH"]+";;D:\Program Files\\nodejs\\"
+os.environ["EXECJS_RUNTIME"] = "Node"
 headers = {
     # 'cookie':'__zp_stoken__=eeddGGL%2B26w0qCAhKv5OnqNF%2BxDXsTRHAcSJeQY6e8LZQ%2BQPsba0lcq3CFCIbaLQLSVd1kKy6DpedWLEJKM60oWSfw%3D%3D',
     # 'pragma':'no-cache',
@@ -47,31 +50,35 @@ headers = {
     # 'sec-fetch-user':'?1',
     'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
 }
-with open(r"C:\Users\Administrator\Desktop\a.js\abcdefg.js", "r", encoding="utf8")as f:
+with open(r"F:\js\a.js\aa.js", "r", encoding="utf8")as f:
     row = f.read()
 fun = execjs.compile(row)
-seed = None
-ts = None
-for i in range(1, 10):
-    url = "https://www.zhipin.com/c101200100/?query=web%E5%89%8D%E7%AB%AF&page={}&ka=page-{}".format(i, i)
-    if i == 1:
-        res1 = requests.get(url, headers=headers, allow_redirects=False)
-        seed = re.search("seed=(.*?)&", res1.headers["location"]).group(1)
-        ts = re.search("ts=(.*?)&", res1.headers["location"]).group(1)
-        seed = parse.unquote_plus(seed)
-    ret = parse.quote_plus(fun.call("aaa", seed, ts))
-    print(ret)
-    headers = {
-        'cookie':'__zp_stoken__='+ret,
-        'pragma':'no-cache',
-        'sec-fetch-mode':'navigate',
-        'sec-fetch-site':'same-origin',
-        'sec-fetch-user':'?1',
-        'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
-    }
-    res2 = requests.get(url, headers=headers)
-    cook = res2.cookies.get_dict()
-    seed = cook["__zp_sseed__"]
-    ts = cook["__zp_sts__"]
-    print(res2)
+# ret = fun.call("f")
+# execjs.get()
+ret = fun.call("fun", '3Nc3krc/lfTgzIZdLfy7I3z9jNFtGBMEM5i8WuSxXQQ=', 1572961184908)
+print(ret)
+# seed = None
+# ts = None
+# for i in range(1, 10):
+#     url = "https://www.zhipin.com/c101200100/?query=web%E5%89%8D%E7%AB%AF&page={}&ka=page-{}".format(i, i)
+#     if i == 1:
+#         res1 = requests.get(url, headers=headers, allow_redirects=False)
+#         seed = re.search("seed=(.*?)&", res1.headers["location"]).group(1)
+#         ts = re.search("ts=(.*?)&", res1.headers["location"]).group(1)
+#         seed = parse.unquote_plus(seed)
+#     ret = parse.quote_plus(fun.call("aaa", seed, ts))
+#     print(ret)
+#     headers = {
+#         'cookie':'__zp_stoken__='+ret,
+#         'pragma':'no-cache',
+#         'sec-fetch-mode':'navigate',
+#         'sec-fetch-site':'same-origin',
+#         'sec-fetch-user':'?1',
+#         'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+#     }
+#     res2 = requests.get(url, headers=headers)
+#     cook = res2.cookies.get_dict()
+#     seed = cook["__zp_sseed__"]
+#     ts = cook["__zp_sts__"]
+#     print(res2)
 
