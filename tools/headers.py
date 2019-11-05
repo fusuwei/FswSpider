@@ -1,21 +1,12 @@
 st = '''
-Accept: application/json, text/javascript, */*; q=0.01
-Accept-Encoding: gzip, deflate, br
-Accept-Language: zh-CN,zh;q=0.9,ja;q=0.8
-Connection: keep-alive
-Content-Length: 75
-Content-Type: application/x-www-form-urlencoded; charset=UTF-8
-Cookie: JSESSIONID=ABAAABAAAIAACBI50AEE079018936C1F1F851BB4843E551; WEBTJ-ID=20191022212415-16df3a3b52f20-0a060e2db327e7-b363e65-1049088-16df3a3b531112; Hm_lvt_4233e74dff0ae5bd0a3d81c6ccf756e6=1571750656; _ga=GA1.2.648911852.1571750656; _gat=1; _gid=GA1.2.1810073550.1571750656; user_trace_token=20191022212415-3ea62c12-f4cf-11e9-9f93-525400f775ce; LGSID=20191022212415-3ea62e81-f4cf-11e9-9f93-525400f775ce; PRE_UTM=; PRE_HOST=www.baidu.com; PRE_SITE=https%3A%2F%2Fwww.baidu.com%2Flink%3Furl%3DlAyoqGv225tn5XylOG3o5USj2hwq8f-NJ4lVm7VJpSK%26ck%3D8082.1.93.206.152.209.146.145%26shh%3Dwww.baidu.com%26wd%3D%26eqid%3Deed4fca4000e2fcc000000035daf02fc; PRE_LAND=https%3A%2F%2Fwww.lagou.com%2F; LGUID=20191022212415-3ea63012-f4cf-11e9-9f93-525400f775ce; index_location_city=%E5%85%A8%E5%9B%BD; TG-TRACK-CODE=index_search; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2216df3a3d247311-05a3c648be4c2e-b363e65-1049088-16df3a3d248700%22%2C%22%24device_id%22%3A%2216df3a3d247311-05a3c648be4c2e-b363e65-1049088-16df3a3d248700%22%7D; sajssdk_2015_cross_new_user=1; SEARCH_ID=0be5380cb81a4a6aa5d87cffec84b20b; X_HTTP_TOKEN=8898454414a5ab5953905717514ec9c6744262d2cc; Hm_lpvt_4233e74dff0ae5bd0a3d81c6ccf756e6=1571750936; LGRID=20191022212856-e5aa0467-f4cf-11e9-9f93-525400f775ce
-Host: www.lagou.com
-Origin: https://www.lagou.com
-Referer: https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=
-Sec-Fetch-Mode: cors
-Sec-Fetch-Site: same-origin
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36
-X-Anit-Forge-Code: 0
-X-Anit-Forge-Token: None
-X-Requested-With: XMLHttpRequest
-
+cookie: lastCity=101200100; _uab_collina=156679703305887683362765; _bl_uid=7Rk2F1w2lqtjC2n6R7aglkygw5va; __c=1572501925; __g=-; __l=l=%2Fwww.zhipin.com%2Fweb%2Fcommon%2Fsecurity-check.html%3Fseed%3DV9ry26ijYVFE6IA9M6Ah%252BKy5%252F2rkr%252BLqYWNPA%252Bh7SZc%253D%26name%3Db25cd80d%26ts%3D1572501997872%26callbackUrl%3D%252Fc101200100%252F%253Fquery%253Dweb%2525E5%252589%25258D%2525E7%2525AB%2525AF%2526page%253D3%2526ka%253Dpage-3%26srcReferer%3Dhttps%253A%252F%252Fwww.zhipin.com%252Fc101200100%252F%253Fquery%253Dweb%2525E5%252589%25258D%2525E7%2525AB%2525AF%2526page%253D2%2526ka%253Dpage-2&r=https%3A%2F%2Fwww.zhipin.com%2Fc101200100%2F%3Fquery%3Dweb%25E5%2589%258D%25E7%25AB%25AF%26page%3D2%26ka%3Dpage-2&friend_source=0; __a=27153194.1572501925..1572501925.1.1.1.1; __zp_stoken__=eeddGGL%2B26w0qCAhKv5OnqNF%2BxDXsTRHAcSJeQY6e8LZQ%2BQPsba0lcq3CFCIbaLQLSVd1kKy6DpedWLEJKM60oWSfw%3D%3D
+pragma: no-cache
+referer: https://www.zhipin.com/web/common/security-check.html?seed=V9ry26ijYVFE6IA9M6Ah%2BKy5%2F2rkr%2BLqYWNPA%2Bh7SZc%3D&name=b25cd80d&ts=1572501997872&callbackUrl=%2Fc101200100%2F%3Fquery%3Dweb%25E5%2589%258D%25E7%25AB%25AF%26page%3D3%26ka%3Dpage-3&srcReferer=https%3A%2F%2Fwww.zhipin.com%2Fc101200100%2F%3Fquery%3Dweb%25E5%2589%258D%25E7%25AB%25AF%26page%3D2%26ka%3Dpage-2
+sec-fetch-mode: navigate
+sec-fetch-site: same-origin
+sec-fetch-user: ?1
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36
 '''
 for i in st.split('\n'):
     if i:

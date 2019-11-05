@@ -7,19 +7,22 @@ class MySpider(manager.Spider):
         super(MySpider, self).__init__()
         self.dbname = "test"
         self.table_name = "test"
-        self.async_number = 1
+        self.async_number = 40
         self.is_purge = True
-        self.debug = False
+        # self.auto_proxy = True
+        self.debug = "w"
 
     def start_produce(self):
-        for i in ["https://www.baidu.com/"]:
-            yield self.Request(url=i,)
+        for i in range(100):
+            yield self.Request(url="https://www.baidu.com", )
 
     def parse(self, res):
         print(res.status_code)
-        return [self.Item(status_code=res.status_code+i) for i in range(10)]
+        import time
+        # print("1234")
+
+        # return self.Item(content=res.status_code)
 
 
 if __name__ == '__main__':
     run("spider\\test.py")
-

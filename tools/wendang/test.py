@@ -1,299 +1,77 @@
-# import asyncio  # pyppeteer采用异步方式，需要导入
-#
-# from pyppeteer import launch
-# from parsel import Selector
-# import time
-# "executablePath"
-#
-#
-# async def main():
-#     browser = await launch({
-#         'headless': True,
-#         # 'devtools': True,  # 打开 chromium 的 devtools
-#         'args': [
-#             '--disable-extensions',  # 禁用拓展。
-#             "-hide-scrollbars",  # 隐藏屏幕快照中的滚动条
-#             "--disable-bundled-ppapi-flash",  # 禁用Flash
-#             "--mute-audio",  # 静音
-#             "--no-sandbox",  # 禁用沙盒
-#             "--disable-setuid-sandbox",  # 禁用GDP
-#         ],
-#         # 'dumpio': True,
-#         "userDataDir": r"D:\userDataDir",
-#     })  # 新建一个Browser对象
-#     page = await browser.newPage()  # 新建一个选项卡，page对象
-#     await page.setViewport({'width': 1366, 'height': 768})
-#     cookies = await page.cookies("https://huaban.com/favorite/beauty/?k05bk3sz&max=2700259955&limit=20&wfl=2")
-#     print(cookies)
-#     # await page.evaluate("""
-#     #     () =>{
-#     #         Object.defineProperties(navigator,{
-#     #             webdriver:{
-#     #             get: () => false
-#     #             }
-#     #         })
-#     #     }
-#     # """)  # 伪装
-#     # await page.setRequestInterception(True)
-#     # page.on('request', intercept_request)
-#     # page.on('response', intercept_response)
-#     # await page.goto('https://huaban.com/favorite/beauty/?k05bk3sz&max=2700259955&limit=20&wfl=2')
-#     # await page.waitFor(1000)
-#     # cookies = await page.cookies()
-#     # print(cookies)
-#     await page.waitFor(3000)
-#     await page.close()
-#     await browser.close()  # 关闭模拟器
-#     return cookies
-#
-#
-# async def intercept_request(req):
-#     """请求过滤"""
-#     if req.resourceType in ['image', 'media', 'eventsource', 'websocket']:
-#         await req.abort()
-#     else:
-#         await req.continue_()
-#
-#
-# async def intercept_response(res):
-#     resourceType = res.request.resourceType
-#     if resourceType in ['xhr', 'fetch']:
-#         resp = await res.text()
-#         print(resp)
-#
-# loop = asyncio.get_event_loop()  # 异步操作
-# future = loop.run_until_complete(main())
-# print(future)
-
-#
-#
-# # import aiohttp
-# # import asyncio
-# # async  def a():
-# #     client_session = aiohttp.ClientSession()
-# #     resp = await client_session.get("https://www.baidu.com", )
-# #     async with resp:
-# #         assert resp.status == 200
-# #         return client_session
-# #
-# #
-# # async def c(client_session):
-# #     resp = await client_session.get("https://www.baidu.com", )
-# #     async with resp:
-# #         print(resp.status)
-# #         await client_session.close()
-# #
-# # loop = asyncio.get_event_loop()
-# # future = loop.run_until_complete(a())
-# # print(future)
-# # loop.run_until_complete(c(future))
-#
-# # import asyncio
-# # import time
-# #
-# #
-# # def ret(a):
-# #     time.sleep(3)
-# #     return a
-# #
-# #
-# # async def get_text(index_url):
-# #     try:
-# #         print(index_url,",","1")
-# #         loop = asyncio.get_event_loop()
-# #         # 主要在这
-# #         resp = await loop.run_in_executor(None, ret, index_url)
-# #         print(index_url,",","2","-",resp)
-# #     except Exception as err:
-# #         # 出现异常重试
-# #         print(err)
-# #         return None
-# #     return resp
-# #
-# # tasks = []
-# # for i in range(0, 3):
-# #     tasks.append(get_text(i))
-# # # 获取EventLoop:
-# # loop = asyncio.get_event_loop()
-# # # 执行coroutine
-# # loop.run_until_complete(asyncio.wait(tasks))
-# # loop.close()
-# from typing import (  # noqa
-#     Any,
-#     Coroutine,
-#     Generator,
-#     Generic,
-#     Iterable,
-#     List,
-#     Mapping,
-#     Optional,
-#     Set,
-#     Tuple,
-#     Type,
-#     TypeVar,
-#     Union,
-# )
-#
-# # def a(i: Union[str, int] = None) -> Union[str, int]:
-# #     print(i)
-# #     return i
-# # b = object()
-# # a(b)
-# import asyncio
-# import threading
-# import time
-#
-# q = asyncio.Queue()
-#
-# async def ping():
-#     while True:
-#         await asyncio.sleep(10)
-#         print("ping")
-#
-# async def rcv():
-#     while True:
-#         item = await q.get()
-#         print("got item")
-#
-# async def run():
-#     tasks = [asyncio.ensure_future(ping()), asyncio.ensure_future(rcv())]
-#     await asyncio.wait(tasks, return_when="FIRST_EXCEPTION")
-#
-# loop = asyncio.get_event_loop()
-#
-# def run_loop():
-#     asyncio.set_event_loop(loop)
-#     loop.run_until_complete(run())
-#
-# threading.Thread(target=run_loop).start()
-#
-# while True:
-#     time.sleep(2)
-#     loop.call_soon_threadsafe(q.put_nowait, "item")
-#     print("item added")
-
-import asyncio
-import threading
-
-
-
-# def threaded(loop):
-#     import time
-#     while True:
-#         time.sleep(2)
-#         loop.call_soon_threadsafe(queue.put_nowait, time.time())
-#         loop.call_soon_threadsafe(lambda: print(queue.qsize()))
-#
-#
-# async def asyncd():
-#     while True:
-#         time = await queue.get()
-#         print(time)
-#
-# loop = asyncio.get_event_loop()
-# queue = asyncio.Queue(loop=loop)
-# threading.Thread(target=loop.run_until_complete, args=(asyncd(), )).start()
-# # threading.Thread(target=threaded, args=(loop, )).start()
-# threaded(loop)
-
-
-# import asyncio
-#
-# async def a ():
-#     print('-------------')
-#     await asyncio.sleep(10)
-# loop = asyncio.get_event_loop()
-# tasks = []
-# for i in range(10):
-#
-# loop.run_forever()
-# loop.run_until_complete(asyncio.wait(tasks))
-
-# url = '123'
-# req = type("Request", (), {"url": url})
-# print()
-# import asyncio
-#
-#
-# async def da():
-#     return 1
-#
-# async def a():
-#     print("----------------")
-#     d = await da()
-#     print(d)
-#     await asyncio.sleep(10)
-#     print('==================')
-#
-# loop = asyncio.get_event_loop()
-# tasks = []
-# for i in range(10):
-#     tasks.append(a())
-#
-# loop.run_until_complete(asyncio.wait(tasks))
-
 # import requests
-# import time
-# session = requests.session()
+#
+#
 # headers = {
-#     'Host': 'www.lagou.com',
-#     'Origin': 'https://www.lagou.com',
-#     'Referer': 'https://www.lagou.com/jobs/list_%E7%88%AC%E8%99%AB?labelWords=&fromSearch=true&suginput=',
-#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+# "Cookie":"lastCity=101200100; _uab_collina=156679703305887683362765; _bl_uid=7Rk2F1w2lqtjC2n6R7aglkygw5va; __c=1571985264; __g=-; __l=l=%2Fwww.zhipin.com%2Fweb%2Fcommon%2Fsecurity-check.html%3Fseed%3DsGWCUWnCegBV8Kz0JYsazgJ8QxINQapHVrUGQQt5Qg4%253D%26name%3Dbdb61485%26ts%3D1571985305131%26callbackUrl%3D%252Fjob_detail%252F%253Fquery%253D%2526city%253D101070100%2526industry%253D%2526position%253D%26srcReferer%3Dhttps%253A%252F%252Fwww.zhipin.com%252F&r=https%3A%2F%2Fwww.zhipin.com%2F&friend_source=0&friend_source=0; Hm_lvt_194df3105ad7148dcf2b98a91b5e727a=1571985281; __zp_stoken__=8c4aoy%2B7W0qNKAmcUKgZq%2FrRrLzfuSA29R9TiwUZSWui9TlN%2FYxpIWvMp6H633OYaVTSLO4rII87knNVjJnYyfIN2Q%3D%3D; __a=53203235.1571985264..1571985264.4.1.4.4; Hm_lpvt_194df3105ad7148dcf2b98a91b5e727a=1571985285",
+# 'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
 # }
-# url = 'https://www.lagou.com'
-# ret = session.get(url, headers=headers)
-# c = requests.cookies.RequestsCookieJar()
-# a = {'LGUID': '20191022215752-f075835b-f4d3-11e9-a604-5254005c3644', 'PRE_LAND': 'https%3A%2F%2Fwww.lagou.com%2F', 'PRE_SITE': '', 'LGSID': '20191022215752-f07581d1-f4d3-11e9-a604-5254005c3644', 'user_trace_token': '20191022215752-f07580c7-f4d3-11e9-a604-5254005c3644', '_gid': 'GA1.2.1826648091.1571752672', 'LGRID': '20191022215752-f0758304-f4d3-11e9-a604-5254005c3644', 'PRE_HOST': '', '_ga': 'GA1.2.189801769.1571752672', 'PRE_UTM': '', 'JSESSIONID': 'ABAAABAAADEAAFIBF0B65782D0482AD2F981ACB4F49E968', '_gat': '1', 'Hm_lpvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'X_HTTP_TOKEN': '42daf4b72327b2812762571751bf5e71415983ed09', 'Hm_lvt_4233e74dff0ae5bd0a3d81c6ccf756e6': '1571752672', 'WEBTJ-ID': '10222019%2C215751-16df3c27a7f166-047b5b75f4f1c3-72222910-480000-16df3c27a80265'}
-# for k,v in a.items():
-#     c.set(k, v)
-# session.cookies.update(c)
-# url1 = "https://www.lagou.com/jobs/positionAjax.json?needAddtionalResult=false"
-# data = {
-# 'first':'false',
-# 'pn':'2',
-# 'kd':'爬虫',
-# 'sid':'2dd815cd8cfb401baf957f11e8022cbd',
-# }
-# time.sleep(1)
-# ret1 = session.post(url1, data=data, headers=headers)
-# print()
-import aiohttp
-headers = {
-
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
-}
-import time
-async def a():
-    conn = aiohttp.TCPConnector(verify_ssl=True, limit=100)
-    async with aiohttp.ClientSession(connector=conn, headers=headers,) as session:
-        async with session.get('https://www.lagou.com/jobs/5724962.html?show=776ad21637a3433da09d0410c5d8d81f',
-                               proxy="http://106.12.199.151:8089"
-                               ) as resp:
-            # session.cookie_jar.update_cookies(coo)
-            print(resp.status)
-        time.sleep(3)
-        async with session.get('https://www.lagou.com/jobs/6382531.html?show=776ad21637a3433da09d0410c5d8d81f',
-                               proxy="http://39.108.123.4:3128"
-                               ) as resp:
-            # session.cookie_jar.update_cookies(coo)
-            print(resp.status)
-        time.sleep(5)
-        async with session.get('https://www.lagou.com/jobs/6423308.html?show=776ad21637a3433da09d0410c5d8d81f',
-                               proxy="http://106.12.83.54:8089"
-                               ) as resp:
-            # session.cookie_jar.update_cookies(coo)
-            print(resp.status)
-        time.sleep(5)
-        session.cookie_jar.clear()
-        async with session.get('https://www.lagou.com/jobs/5210418.html?show=776ad21637a3433da09d0410c5d8d81f',
-                               proxy="http://106.12.133.224:8089"
-                               ) as resp:
-            # session.cookie_jar.update_cookies(coo)
-            print(resp.status)
-import asyncio
-asyncio.run(a())
-# import requests
 # session = requests.session()
-# a = session.get("https://www.baidu.com",)
+# ret = session.get("https://www.zhipin.com/c101200100/?page=2&ka=page-2", headers=headers)
+#
 # print()
+# a = {'__a': '7109279.1571904386.1571904386.1571906663.3.2.2.3', 'lastCity': '101200100', 'Hm_lvt_194df3105ad7148dcf2b98a91b5e727a': '1571904330,1571904386,1571906663', '__c': '1571906663', '__g': '-', 'Hm_lpvt_194df3105ad7148dcf2b98a91b5e727a': '1571906663', '__l': 'l=%2Fwww.zhipin.com%2F&r=&friend_source=0&friend_source=0'}
+# print('; '.join(k+ '=' + v for k, v in a.items())+"; ")
+
+
+# import aiohttp
+# import asyncio
+# import requests
+#
+# async def req():
+#     print("--------------------")
+#     conn = aiohttp.TCPConnector(verify_ssl=True, limit=100)
+#     async with aiohttp.ClientSession(connector=conn,)as session:
+#
+#         res = await session.get("https://www.baidu.com/")
+#
+#         await res.text()
+#         print("==================")
+#         print(res.status)
+#
+# tasks = [
+#     req() for i in range(10)
+# ]
+#
+# loop = asyncio.get_event_loop()
+# loop.run_until_complete(asyncio.wait(tasks))
+import time
+import execjs
+import requests
+from urllib import parse
+import re
+headers = {
+    # 'cookie':'__zp_stoken__=eeddGGL%2B26w0qCAhKv5OnqNF%2BxDXsTRHAcSJeQY6e8LZQ%2BQPsba0lcq3CFCIbaLQLSVd1kKy6DpedWLEJKM60oWSfw%3D%3D',
+    # 'pragma':'no-cache',
+    # 'sec-fetch-mode':'navigate',
+    # 'sec-fetch-site':'same-origin',
+    # 'sec-fetch-user':'?1',
+    'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+}
+with open(r"C:\Users\Administrator\Desktop\a.js\abcdefg.js", "r", encoding="utf8")as f:
+    row = f.read()
+fun = execjs.compile(row)
+seed = None
+ts = None
+for i in range(1, 10):
+    url = "https://www.zhipin.com/c101200100/?query=web%E5%89%8D%E7%AB%AF&page={}&ka=page-{}".format(i, i)
+    if i == 1:
+        res1 = requests.get(url, headers=headers, allow_redirects=False)
+        seed = re.search("seed=(.*?)&", res1.headers["location"]).group(1)
+        ts = re.search("ts=(.*?)&", res1.headers["location"]).group(1)
+        seed = parse.unquote_plus(seed)
+    ret = parse.quote_plus(fun.call("aaa", seed, ts))
+    print(ret)
+    headers = {
+        'cookie':'__zp_stoken__='+ret,
+        'pragma':'no-cache',
+        'sec-fetch-mode':'navigate',
+        'sec-fetch-site':'same-origin',
+        'sec-fetch-user':'?1',
+        'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+    }
+    res2 = requests.get(url, headers=headers)
+    cook = res2.cookies.get_dict()
+    seed = cook["__zp_sseed__"]
+    ts = cook["__zp_sts__"]
+    print(res2)
+

@@ -52,18 +52,22 @@ class Heartbeat(threading.Thread):
 
 
 class RabbitMq:
-    def __init__(self, name, connection, channel):
+    def __init__(self, name, connection, channel, rabbitmq_host, rabbitmq_user, rabbitmq_pwd):
         self.name = name
         self.connection = connection
         self.channel = channel
+        self.rabbitmq_host = rabbitmq_host
+        self.rabbitmq_user = rabbitmq_user
+        self.rabbitmq_pwd = rabbitmq_pwd
 
     @classmethod
     def connect(cls, name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd, ):
         logger.debug("开始连接rabbitmq队列！")
         user_pwd = pika.PlainCredentials(rabbitmq_user, rabbitmq_pwd)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host, credentials=user_pwd))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host, credentials=user_pwd, heartbeat=0))
         channel = connection.channel()
-        return cls(name, connection, channel)
+        queue = channel.queue_declare(queue=name, durable=True, arguments=False)
+        return cls(name, connection, channel, rabbitmq_host, rabbitmq_user, rabbitmq_pwd)
 
     def is_empty(self, name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd):
         res = requests.get(url='http://{}:{}/api/queues/{}/{}'.format(rabbitmq_host, "15672", "%2F", name
@@ -72,7 +76,7 @@ class RabbitMq:
         res = json.loads(res.content.decode())
         return int(res["messages"])
 
-    def queue_declare(self, name=None, durable=True, args=None):
+    def queue_declare(self, name=None, durable=True, args=False):
         if name:
             queue = self.channel.queue_declare(queue=name, durable=durable, arguments=args)
         else:
@@ -90,17 +94,17 @@ class RabbitMq:
         heartbeat = Heartbeat(self.connection)  # 实例化一个心跳类
         heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
         heartbeat.startheartbeat()  # 开启心跳保护
-        # self.channel.start_consuming()
+        self.channel.start_consuming()
         try:
             # consu = threading.Thread(target=self.channel.start_consuming, )  # 开始消费
             consu = ExceptErrorThread(self.channel.start_consuming)
             consu.setDaemon(True)
             consu.start()
             while True:
-                consu.join(30)
                 if self.is_empty(name=self.name, rabbitmq_host=setting.rabbitmq_host,
                                      rabbitmq_user=setting.rabbitmq_user, rabbitmq_pwd=setting.rabbitmq_pwd, ) == 0:
                     self.del_queue(self.name)
+                    consu.join(60)
                     break
         except Exception as e:
             logger.error(e)
@@ -146,4 +150,4 @@ def connecting(name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd):
             traceback.print_exc()
             os._exit(1)
         else:
-            return Rabbit, rabbitmq_host, rabbitmq_user, rabbitmq_pwd
+            return Rabbit

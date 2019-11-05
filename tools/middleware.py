@@ -96,3 +96,9 @@ class LaGouWang:
             return request, spider
         else:
             return request, spider
+
+
+class BossZhiPin:
+    def process_request(self, request, spider):
+        request.headers = spider.headers
+        return request, spider

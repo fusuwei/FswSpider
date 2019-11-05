@@ -83,8 +83,10 @@ class Spider:
         self.update = self.Mysql.update
 
         # rabbitmq连接
-        self.Rabbit, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd = \
-            rabbitconnecting(self.spider_name, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd)
+        self.Rabbit = rabbitconnecting(self.spider_name, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd)
+        self.rabbitmq_host = self.Rabbit.rabbitmq_host
+        self.rabbitmq_user = self.Rabbit.rabbitmq_user
+        self.rabbitmq_pwd = self.Rabbit.rabbitmq_pwd
 
         # 其他参数
         self._produce_count = 1
@@ -184,8 +186,12 @@ class Spider:
         """
         # heartbeat = Heartbeat(self.rabbit.connection)  # 实例化一个心跳类
         # heartbeat.start()  # 开启一个心跳线程，不传target的值默认运行run函数
-        # heartbeat.startheartbeat()  # 开启心跳保护
-        self.Rabbit.consume(callback=self.callback, limit=self.async_number)
+        # heartbeat.startheartbeat()  # 开启心跳保护\
+        import pika
+        while True:
+            self.Rabbit.consume(callback=self.callback, limit=self.async_number)
+            break
+
         print("---------------------------------------")
         self.item.join()
         print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -203,21 +209,23 @@ class Spider:
         message = json.loads(body)
         tag = method.delivery_tag
         obj = Request(**message)
-        if obj.count >= 3:
-            if obj.count == 3:
-                self._count_.add(get_md5(obj.to_publish()))
-            if len(self._count_) == self.Rabbit.is_empty(self.spider_name, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd):
-                logger.error("队列请求全部报错！")
-                os._exit(1)
-            obj.count += 1
-            self.dispatch(obj, obj)
-            channel.basic_ack(delivery_tag=tag)
-        else:
-            asyncio.run_coroutine_threadsafe(self.before_deal(obj, channel, tag), self.new_loop)
+        # if obj.count >= 3:
+        #     if obj.count == 3:
+        #         self._count_.add(get_md5(obj.to_publish()))
+        #     if len(self._count_) == self.Rabbit.is_empty(self.spider_name, self.rabbitmq_host, self.rabbitmq_user, self.rabbitmq_pwd):
+        #         logger.error("队列请求全部报错！")
+        #         os._exit(1)
+        #     obj.count += 1
+        #     self.dispatch(obj, obj)
+        #     channel.basic_ack(delivery_tag=tag)
+        # else:
+        # print(body, tag)
+        asyncio.run_coroutine_threadsafe(self.before_deal(obj, channel, tag), self.new_loop)
 
     async def before_deal(self, obj, channel, tag):
         try:
             res = await request(self, obj)
+            time.sleep(0.003)
             if self._flag:
                 self.item.join()
         except Exception:
@@ -226,6 +234,7 @@ class Spider:
         else:
             if res:
                 self.dispatch(res, obj)
+        finally:
             channel.basic_ack(delivery_tag=tag)
 
     def start_save(self,):
