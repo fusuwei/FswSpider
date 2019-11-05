@@ -14,7 +14,7 @@ logger = log(__name__)
 PATH = setting.PATH
 
 
-class Spider:
+class Spider(metaclass=abc.ABCMeta):
     def __init__(self):
         # 爬虫脚本配置
         self.auto_proxy = False
@@ -135,6 +135,10 @@ class Spider:
             print("[%d]生产：" % (self._produce_count), message)
             self._url_md5.add(md5)
             self._produce_count += 1
+
+    @abc.abstractmethod
+    def parse(self, res):
+        pass
 
     def start_loop(self, loop):
         """
