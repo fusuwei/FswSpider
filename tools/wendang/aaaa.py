@@ -1,3 +1,94 @@
+# -*- coding: utf-8 -*-
+# import pika
+# import asyncio
+# import functools
+#
+# class RabbitMq:
+#     def __init__(self, engine):
+#         self.engine = engine
+#         self.loop = asyncio.get_event_loop()
+#
+#     def mq_connection(self):
+#         """初始化"""
+#         credentials = pika.PlainCredentials(username=self.engine.mq_user, password=self.engine.mq_pwd)
+#         self.connector = pika.BlockingConnection(
+#             pika.ConnectionParameters(host=self.engine.mq_host, port=self.engine.mq_port, credentials=credentials, heartbeat=0),
+#         )
+#         channel = self.connector.channel()
+#         return self.connector, channel
+#
+#     @staticmethod
+#     def publish(channel, request, queue):
+#         """生产"""
+#         channel.queue_declare(queue=queue, durable=True)  # 队列持久化
+#         channel.basic_publish(
+#             exchange='',
+#             routing_key=queue,
+#             body=request,
+#             properties=pika.BasicProperties(delivery_mode=2)  # 消息持久化
+#         )
+#
+#     async def aaa(self, ch, method, body):
+#         await asyncio.sleep(1)
+#         print(body)
+#         self.connector.add_callback_threadsafe())
+#
+#     def callback(self, ch, method, properties, body):
+#         """回调函数"""
+#         print(1)
+#         cor = self.aaa(ch, method, body)
+#         asyncio.run_coroutine_threadsafe(cor, self.loop)
+#
+#     def run_forever(self, loop):
+#         asyncio.set_event_loop(loop)
+#         loop.run_forever()
+#
+#     @staticmethod
+#     def consume(connector, channel, queue, callback, prefetch_count):
+#         channel.queue_declare(queue=queue, durable=True)  # 队列持久化
+#         channel.basic_qos(prefetch_count=prefetch_count)
+#         channel.basic_consume(
+#             queue=queue,
+#             on_message_callback=callback,
+#             auto_ack=False)
+#         channel.start_consuming()
+#
+#
+#         # """消费"""
+#         # channel.queue_declare(queue=queue, durable=True)  # 队列持久化
+#         # channel.basic_qos(prefetch_count=prefetch_count)
+#         # channel.basic_consume(
+#         #     queue=queue,
+#         #     on_message_callback=callback,
+#         #     auto_ack=False)
+#         # channel.start_consuming()
+#
+#     def del_queue(self, name, if_unused=False, if_empty=False):
+#         self.channel.queue_delete(queue=name, if_unused=if_unused, if_empty=if_empty)
+#
+#     @staticmethod
+#     def purge(channel, queue_name):
+#         channel.queue_purge(queue_name)
+#         print('队列已清空!!!')
+#
+#
+# if __name__ == '__main__':
+#     import threading
+#
+#     r = RabbitMq(type('engine', (), {'mq_user': 'fsw', 'mq_pwd': '123456', 'mq_host': 'localhost', 'mq_port': 5672}))
+#     thread = threading.Thread(target=r.run_forever, args=(r.loop,))
+#     thread.setDaemon(True)
+#     thread.start()
+#     co, ca = r.mq_connection()
+#     # r.purge(ca, 'abcdef')
+#     # for i in range(10000):
+#     #
+#     #     r.publish(ca, str(i), 'abcdef')
+#
+#     r.consume(co, ca, 'abcdef', r.callback, 1000)
+
+
+import pika
 import threading
 import os
 import traceback
@@ -8,7 +99,7 @@ from tools.built_in.log import log
 from tools.toolslib import ExceptErrorThread
 import requests
 import json
-logger = log(__name__)
+# logger = log(__name__)
 
 
 class Heartbeat(threading.Thread):
@@ -62,8 +153,7 @@ class RabbitMq:
 
     @classmethod
     def connect(cls, name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd, ):
-        logger.debug("开始连接rabbitmq队列！")
-
+        # logger.debug("开始连接rabbitmq队列！")
         user_pwd = pika.PlainCredentials(rabbitmq_user, rabbitmq_pwd)
 
         parameters = (
@@ -71,6 +161,7 @@ class RabbitMq:
             pika.ConnectionParameters(host=rabbitmq_host, credentials=user_pwd, heartbeat=0,
                                       connection_attempts=5, retry_delay=1))
         connection = pika.BlockingConnection(parameters)
+        connection.add_callback_threadsafe()
         channel = connection.channel()
         channel.queue_declare(queue=name, durable=True, arguments=False)
         return cls(name, connection, channel, rabbitmq_host, rabbitmq_user, rabbitmq_pwd)
@@ -149,7 +240,7 @@ class RabbitMq:
                     self.del_queue(self.name)
                     break
         except Exception as e:
-            logger.error(e)
+            # logger.error(e)
             print(e)
 
 
@@ -167,7 +258,7 @@ def connecting(name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd):
         elif setting.rabbitmq_user:
             rabbitmq_user = setting.rabbitmq_user
         else:
-            logger.error("未配置RabbitMq用户名")
+            # logger.error("未配置RabbitMq用户名")
             raise ValueError("未配置RabbitMq用户名")
 
         if rabbitmq_pwd:
@@ -175,14 +266,31 @@ def connecting(name, rabbitmq_host, rabbitmq_user, rabbitmq_pwd):
         elif setting.rabbitmq_pwd:
             rabbitmq_pwd = setting.rabbitmq_pwd
         else:
-            logger.error("未配置RabbitMq密码")
+            # logger.error("未配置RabbitMq密码")
             raise ValueError("未配置RabbitMq密码")
         try:
             Rabbit = RabbitMq.connect(name, rabbitmq_host=rabbitmq_host,
                                       rabbitmq_user=rabbitmq_user, rabbitmq_pwd=rabbitmq_pwd)
         except Exception as e:
-            logger.error(e)
+            # logger.error(e)
             traceback.print_exc()
             os._exit(1)
         else:
             return Rabbit
+
+
+
+if __name__ == '__main__':
+    def aa(ch, method, properties, body):
+        print(body)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # queue = rabbit.queue_declare("test")
+        # print(queue.method.message_count)
+
+
+    rabbit = connecting("test", "127.0.0.1", "fsw", "123456")
+    for i in range(100):
+        body = {"url": "https://www.baidu.com/"}
+        rabbit.pulish(body=json.dumps(body))
+
+    rabbit.consume("test", aa, prefetch_count=2)

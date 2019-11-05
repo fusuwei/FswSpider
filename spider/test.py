@@ -7,7 +7,7 @@ class MySpider(manager.Spider):
         super(MySpider, self).__init__()
         self.dbname = "test"
         self.table_name = "test"
-        self.async_number = 40
+        self.async_number = 1
         self.is_purge = True
         # self.auto_proxy = True
         self.debug = "w"
