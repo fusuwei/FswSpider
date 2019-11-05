@@ -40,10 +40,11 @@ import requests
 from urllib import parse
 import re
 import os
-os.environ["PATH"] = os.environ["PATH"]+";;D:\Program Files\\nodejs\\"
+# os.environ["PATH"] = os.environ["PATH"]+";;D:\Program Files\\nodejs\\"
+# os.environ["NODE"] = "D:\Program Files\\nodejs\\"
 os.environ["EXECJS_RUNTIME"] = "Node"
 headers = {
-    # 'cookie':'__zp_stoken__=eeddGGL%2B26w0qCAhKv5OnqNF%2BxDXsTRHAcSJeQY6e8LZQ%2BQPsba0lcq3CFCIbaLQLSVd1kKy6DpedWLEJKM60oWSfw%3D%3D',
+    'cookie':'__zp_stoken__=eeddGGL%2B26w0qCAhKv5OnqNF%2BxDXsTRHAcSJeQY6e8LZQ%2BQPsba0lcq3CFCIbaLQLSVd1kKy6DpedWLEJKM60oWSfw%3D%3D',
     # 'pragma':'no-cache',
     # 'sec-fetch-mode':'navigate',
     # 'sec-fetch-site':'same-origin',
