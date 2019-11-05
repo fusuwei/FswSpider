@@ -1,10 +1,8 @@
 import chardet
 from typing import *
 import re
-from tools.toolslib import get_cookies
-from tools.proxy import get_ip, ip_process
-from tools.user_agents import get_ua
 from tools import log
+from tools.toolslib import selector
 logger = log(__name__)
 
 
@@ -23,6 +21,7 @@ class Response:
         self.error = error
         self.meta = meta
         self.text = self._parse_content(charset, content)
+        self.resp = selector(self)
 
     def _parse_content(self, charset, content):
         if not content:
@@ -62,6 +61,9 @@ class Response:
                         text = content.decode('utf-8', "ignore")
         return text
 
+    def selector(self):
+        if self.text is not None:
+            return selector(res=self)
 
 class Request:
     def __init__(self, url: Union[int, str], method: str = "GET", callback: str = "parse",
