@@ -23,13 +23,15 @@ mysql_pwd = "fsw.1996"
 mysql_port = 3306
 
 # 中间件
-MIDDLEWARES = {
+SPIDER_MIDDLEWARE = {
     # "wangyiyun_buff": 'tools.middleware.WangYiYunBuff',
     # "lagouwang": 'tools.middleware.LaGouWang',
     "BossZhiPin": 'tools.middleware.BossZhiPin',
     # 'tools.middleware.DefaultMiddleware': 543,
 }
+DOWNLOADER_MIDDLEWARES = {
 
+}
 # selenium
 webdriver_path_win = r"C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe"
 

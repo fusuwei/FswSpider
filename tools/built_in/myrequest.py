@@ -1,6 +1,7 @@
 import aiohttp
 import requests
 from requests.cookies import RequestsCookieJar
+from tools import Response, Request
 import setting
 from tools import log
 from tools.proxy import ip_process
@@ -14,29 +15,46 @@ logger = log(__name__)
 
 
 def import_libs(spider_name):
-    Middleware = None
-    if hasattr(setting, "MIDDLEWARES"):
-        middleware_dict = getattr(setting, "MIDDLEWARES")
-        middleware = middleware_dict.get(spider_name, "")
-        if middleware:
-            path, pack = middleware.rsplit(".", maxsplit=1)
-            Middleware = import_module(path)
-            Middleware = getattr(Middleware, pack)()
-    return Middleware
+    Spider_Middleware, Downloader_Middleware = None, None
+    if hasattr(setting, "SPIDER_MIDDLEWARE"):
+        spider_middleware_dict = getattr(setting, "SPIDER_MIDDLEWARE")
+        spider_middleware = spider_middleware_dict.get(spider_name, "")
+        if spider_middleware:
+            spider_path, spider_pack = spider_middleware.rsplit(".", maxsplit=1)
+            Spider_Middleware = import_module(spider_path)
+            Spider_Middleware = getattr(Spider_Middleware, spider_pack)()
+
+    if hasattr(setting, "DOWNLOADER_MIDDLEWARES"):
+        dowmloader_middleware_dict = getattr(setting, "DOWNLOADER_MIDDLEWARES")
+        dowmloader_middleware = dowmloader_middleware_dict.get(spider_name, "")
+        if dowmloader_middleware:
+            dowmloader_path, dowmloader_pack = dowmloader_middleware.rsplit(".", maxsplit=1)
+            Downloader_Middleware = import_module(dowmloader_path)
+            Downloader_Middleware = getattr(Downloader_Middleware, dowmloader_pack)()
+
+    return Spider_Middleware, Downloader_Middleware
 
 
 def middleware(func, ):
-    def inner(spider, request, *args, **kwargs):
+    def inner(spider, object, *args, **kwargs):
         try:
             dm = DefaultMiddleware()
-            request, spider = dm.process_request(request, spider)
+            request, spider = dm.process_request(object, spider)
         except Exception:
             pass
-        Middleware = import_libs(spider.spider_name)
-        if Middleware:
-            request, spider = Middleware.process_request(request, spider)
-        return func(spider, request, *args, **kwargs)
+        Spider_Middleware, Downloader_Middleware = import_libs(spider.spider_name)
+        if isinstance(object, Request):
+            if Spider_Middleware:
+                request, spider = Spider_Middleware.process_request(object, spider)
+        elif isinstance(object, Response):
+            if Downloader_Middleware:
+                response, spider = Downloader_Middleware.process_request(object, spider)
+        return func(spider, object, *args, **kwargs)
     return inner
+
+@middleware
+def downloader(spider, object):
+    return object
 
 
 async def create_session(is_async=True, verify_ssl=True, cookies=None):
@@ -171,6 +189,7 @@ async def request(spider, request,):
             if isinstance(res, spider.Request):
                 continue
             else:
+                res = downloader(spider, res)
                 ret = callback(res)
                 if res == ret:
                     return request
