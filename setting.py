@@ -30,7 +30,7 @@ SPIDER_MIDDLEWARE = {
     # 'tools.middleware.DefaultMiddleware': 543,
 }
 DOWNLOADER_MIDDLEWARES = {
-
+    "BossZhiPin": 'tools.download_middlewares.BossZhiPin',
 }
 # selenium
 webdriver_path_win = r"C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe"

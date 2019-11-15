@@ -100,6 +100,13 @@ class LaGouWang:
 
 class BossZhiPin:
     def process_request(self, request, spider):
+        if not spider.headers:
+            spider.headers = {
+                'sec-fetch-mode':'navigate',
+                'sec-fetch-site':'same-origin',
+                'sec-fetch-user':'?1',
+                'user-agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+            }
         request.allow_redirects = False
         request.headers = spider.headers
         return request, spider

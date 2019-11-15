@@ -31,6 +31,7 @@ class Spider(metaclass=abc.ABCMeta):
         self.session = None
         self.debug = False
         self.get_ip = False
+        self.headers = None
 
         # 数据库配置
         self.mysql_host = None

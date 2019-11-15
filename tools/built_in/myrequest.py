@@ -1,10 +1,10 @@
 import aiohttp
 import requests
 from requests.cookies import RequestsCookieJar
-from tools import Response, Request
 import setting
 from tools import log
 from tools.proxy import ip_process
+from tools import Response, Request
 from importlib import import_module
 import time
 try:
@@ -190,6 +190,8 @@ async def request(spider, request,):
                 continue
             else:
                 res = downloader(spider, res)
+                if isinstance(res, spider.Request):
+                    continue
                 ret = callback(res)
                 if res == ret:
                     return request

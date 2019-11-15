@@ -26,3 +26,14 @@ class MySpider(manager.Spider):
 
 if __name__ == '__main__':
     run("spider\\test.py")
+    # import requests
+    #
+    # headers = {
+    #     'sec-fetch-mode': 'navigate',
+    #     'sec-fetch-site': 'same-origin',
+    #     'sec-fetch-user': '?1',
+    #     'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
+    # }
+    # ret = requests.get("https://www.zhipin.com/c100010000/?query=%E7%88%AC%E8%99%AB&page=2&ka=page-2",
+    #                    headers=headers, allow_redirects=False)
+    # print(ret)
