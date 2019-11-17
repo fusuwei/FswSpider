@@ -13,14 +13,14 @@ class MySql:
         self.sql = Sql()
 
     @classmethod
-    def mysql_pool(cls, dbname=None, mysql_host=None, mysql_port=3306, mysql_user=None, mysql_pwd=None):
+    def mysql_pool(cls, dbname=None, mysql_host=None, mysql_port=3306, mysql_user=None, mysql_pwd=None, maxconnections=5):
         logger.debug("开启mysql连接池！")
         if not mysql_host or not mysql_user or not mysql_pwd:
             host, port, user, password = setting.mysql_host, setting.mysql_port, setting.mysql_user, setting.mysql_pwd
         else:
             host, port, user, password = mysql_host, mysql_port, mysql_user, mysql_pwd
         if not dbname:
-            pool = PooledDB(creator=pymysql, maxconnections=5,
+            pool = PooledDB(creator=pymysql, maxconnections=maxconnections,
                             blocking=True,  # 连接池中如果没有可用连接后，是否阻塞等待。True，等待；False，不等待然后报错
                             setsession=[],
                             ping=0,
@@ -30,7 +30,7 @@ class MySql:
                             password=password,
                             charset='utf8', )
         else:
-            pool = PooledDB(creator=pymysql, maxconnections=5,
+            pool = PooledDB(creator=pymysql, maxconnections=maxconnections,
                             blocking=True,  # 连接池中如果没有可用连接后，是否阻塞等待。True，等待；False，不等待然后报错
                             setsession=[],
                             ping=0,
@@ -213,7 +213,7 @@ class Sql:
         return ' and '.join(tmplist)
 
 
-def connecting(dbname, mysql_host, mysql_user, mysql_pwd, mysql_port=3306):
+def connecting(dbname, mysql_host, mysql_user, mysql_pwd, mysql_port=3306, maxconnections=5):
     if dbname:
         if mysql_host:
             setting.mysql_host = mysql_host
@@ -240,7 +240,8 @@ def connecting(dbname, mysql_host, mysql_user, mysql_pwd, mysql_port=3306):
 
         try:
             mysql = MySql.mysql_pool(dbname=dbname, mysql_host=mysql_host, mysql_port=mysql_port,
-                                     mysql_user=mysql_user, mysql_pwd=mysql_pwd
+                                     mysql_user=mysql_user, mysql_pwd=mysql_pwd,
+                                     maxconnections=maxconnections
                                  )
         except Exception as e:
             logger.error(e)
