@@ -226,7 +226,6 @@ class Spider(metaclass=abc.ABCMeta):
     async def before_deal(self, obj, channel, tag):
         try:
             res = await request(self, obj)
-            time.sleep(0.003)
             if self._flag:
                 self.item.join()
         except Exception:
