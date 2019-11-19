@@ -51,6 +51,10 @@ class Spider(metaclass=abc.ABCMeta):
         self._pre_domain_name = None
         self._count_ = set()
 
+        # 自动更新
+        self.auto_update = None
+        self.update_freq = None
+
     def init(self, spider_name=None):
         """
         初始化函数， mysql, RabbitMq 连接, 其他配置
@@ -116,6 +120,10 @@ class Spider(metaclass=abc.ABCMeta):
                     self.dispatch(objs)
 
         if not self.debug or (self.debug and self.debug == 'w'):
+            # if self.auto_update and self.update_freq:
+                # auto_mysql = mysqlconnecting("spider_auto_update", self.mysql_host, self.mysql_user, self.mysql_pwd,
+                #                              mysql_port=self.mysql_port, maxconnections=1)[0]
+                # auto_mysql.insql("auto_update")
             self.start_consume()
 
     @abc.abstractmethod
