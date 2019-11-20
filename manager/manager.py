@@ -55,12 +55,16 @@ class Spider(metaclass=abc.ABCMeta):
         self.auto_update = None
         self.update_freq = None
 
-    def init(self, spider_name=None):
+    def init(self, spider_name=None, path='', is_auto=False):
         """
         初始化函数， mysql, RabbitMq 连接, 其他配置
         :return:
         """
         # 爬虫配置初始化
+        if is_auto:
+            self.debug=False
+        if path:
+            self.path = path
         if spider_name:
             self.spider_name = spider_name
             setting.spider_name = spider_name
@@ -120,10 +124,18 @@ class Spider(metaclass=abc.ABCMeta):
                     self.dispatch(objs)
 
         if not self.debug or (self.debug and self.debug == 'w'):
-            # if self.auto_update and self.update_freq:
-                # auto_mysql = mysqlconnecting("spider_auto_update", self.mysql_host, self.mysql_user, self.mysql_pwd,
-                #                              mysql_port=self.mysql_port, maxconnections=1)[0]
-                # auto_mysql.insql("auto_update")
+            if self.auto_update and self.update_freq:
+                updated = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+                auto_mysql = mysqlconnecting("spider_auto_update", self.mysql_host, self.mysql_user, self.mysql_pwd,
+                                             mysql_port=self.mysql_port, maxconnections=1)[0]
+                if auto_mysql.select("auto_update", "*", {"name": self.spider_name}, one=True):
+                    auto_mysql.update("auto_update", {"updated": updated}, {"name": self.spider_name})
+                else:
+                    conditions = {
+                        "name": self.spider_name, "path": self.path, "path_name": self.path.replace(".", "/")+'.py',
+                        "auto_update": self.auto_update, "update_freq": self.update_freq, "updated": updated
+                    }
+                    auto_mysql.insql("auto_update", conditions)
             self.start_consume()
 
     @abc.abstractmethod
@@ -204,6 +216,12 @@ class Spider(metaclass=abc.ABCMeta):
 
         print("---------------------------------------")
         self.item.join()
+        if self.auto_update and self.update_freq:
+            auto_mysql = mysqlconnecting("spider_auto_update", self.mysql_host, self.mysql_user, self.mysql_pwd,
+                                         mysql_port=self.mysql_port, maxconnections=1)[0]
+            if auto_mysql.select("auto_update", "*", {"name": self.spider_name}, one=True):
+                auto_mysql.update("auto_update", {"success": 1}, {"name": self.spider_name})
+
         print("当前时间：", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         print("运行完..")
 

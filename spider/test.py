@@ -5,26 +5,29 @@ from manager.runner import run
 class MySpider(manager.Spider):
     def __init__(self):
         super(MySpider, self).__init__()
-        self.dbname = "test"
+        self.dbname = "spider_auto_update"
         self.table_name = "test"
-        self.async_number = 10
+        self.async_number = 1
         self.is_purge = True
-        self.download_delay = 3
+        self.download_delay = 0
+        self.auto_update = 1
+        self.update_freq = 0.01
         # self.timeout = 1
         # self.auto_proxy = True
-        self.debug = "w"
+        self.debug = "m"
+        self.count = 1
 
     def start_produce(self):
-        for i in range(100):
+        for i in range(10):
             yield self.Request(url="https://www.baidu.com", data={"1": i})
 
     def parse(self, res):
-        print(res.status_code)
-        import time
-        time.sleep(30)
+        self.count += 1
+        return self.Request(url="https://www.baidu.com", callback="aaaa", data={"1": self.count})
         # print("1234")
 
-        # return self.Item(content=res.status_code)
+    def aaaa(self, res):
+        print(res.status_code)
 
 
 if __name__ == '__main__':
