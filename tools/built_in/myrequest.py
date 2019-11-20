@@ -80,6 +80,7 @@ async def close_session(session, is_async=True):
 
 @middleware
 async def requesting(spider, request, max_times=3):
+    print("开始请求：", request.url)
     method = request.method
     session = spider.session
     is_async = spider.is_async
@@ -184,7 +185,6 @@ async def request(spider, request,):
                     await close_session(session=spider.session)
                 spider.session = await create_session(spider.is_async, request.verify, spider.cookies)
             spider._pre_domain_name = request.domain_name
-            print("开始请求：", request.url)
             res = await requesting(spider, request, max_times=max_times)
             if isinstance(res, spider.Request):
                 continue

@@ -110,3 +110,17 @@ class BossZhiPin:
         request.allow_redirects = False
         request.headers = spider.headers
         return request, spider
+
+
+import execjs
+class PinDuoDuo:
+    def process_request(self, request, spider):
+        with open(r"C:\Users\Administrator\Desktop\pinduoduo.js", "r") as f:
+            row = f.read()
+        url = 'http://yangkeduo.com/search_catgoods.html?opt_id=10392&opt1_id=999998&opt2_id=999999&opt_g=1&opt_type=3&opt_name=%E5%A5%B3%E6%AC%BE%E9%A9%AC%E4%B8%81%E9%9D%B4&_x_link_id=c305a165-7b18-4753-a653-b09f522fccec&refer_page_name=search&refer_page_id=10031_1574240097613_1EyfHPQiL0&refer_page_sn=10031'
+        anti_content = execjs.compile(row,).call("get_anti", url)
+        request.url = request.url.replace('aaaa', anti_content)
+        request.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36"
+        }
+        return request, spider

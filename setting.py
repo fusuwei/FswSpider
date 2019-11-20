@@ -26,11 +26,11 @@ mysql_port = 3306
 SPIDER_MIDDLEWARE = {
     # "wangyiyun_buff": 'tools.middleware.WangYiYunBuff',
     # "lagouwang": 'tools.middleware.LaGouWang',
-    "BossZhiPin": 'tools.middleware.BossZhiPin',
-    # 'tools.middleware.DefaultMiddleware': 543,
+    # "BossZhiPin": 'tools.middleware.BossZhiPin',
+    "pinduoduo": 'tools.middleware.PinDuoDuo',
 }
 DOWNLOADER_MIDDLEWARES = {
-    "BossZhiPin": 'tools.download_middlewares.BossZhiPin',
+    # "BossZhiPin": 'tools.download_middlewares.BossZhiPin',
 }
 # selenium
 webdriver_path_win = r"C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe"
