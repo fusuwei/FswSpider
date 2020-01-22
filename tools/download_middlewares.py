@@ -26,16 +26,26 @@ class BossZhiPin:
                 "_phantom":undefined,
                 "moveTo":true,
                 "moveBy":function () {},
+                "open":function () {},
             };
             var document = {
                 "getElementById":function (glcanvas) {return null},
-                "title":"dasdasda"
-            };     
+                "title":"dasdasda",
+                "createElement":function (str) {return str}
+            };
+            window.open.toString= function () {
+                return "function open() { [native code] }"
+            };
+            top = {"location":
+                    {"href":"https://www.zhipin.com/c101190100-p100101/?page=2&ka=page-2"}
+            };
+            exec = eval;
             """
             js2 = re.sub("setInterval(.*?)0x1f4\);", "", js.text)
             js3 = """
             func = function (e, i) {
-                s = (new ABC).z(e, parseInt(i) + 60 * (480 + (new Date).getTimezoneOffset()) * 1e3)
+                s = (new ABC).z(e, parseInt(i) + 60 * (480 + (new Date).getTimezoneOffset()) * 1e3);
+                console.info(s)
                 return s
             }
             """
